@@ -4,8 +4,8 @@
     <img alt="TransitionZero Logo" width="300px" src="https://github.com/transition-zero/.github/raw/main/profile/img/logo-light.png">
   </picture>
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/transition-zero/.github/raw/main/profile/img/logo-dark.png">
-    <img alt="TransitionZero Logo" width="300px" src="https://github.com/transition-zero/.github/raw/main/profile/img/logo-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/250px-Google_2015_logo.svg.png">
+    <img alt="Google Logo" width="300px" src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/250px-Google_2015_logo.svg.png">
   </picture>
 </div>
 
