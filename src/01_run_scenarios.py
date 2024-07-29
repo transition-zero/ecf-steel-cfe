@@ -35,4 +35,5 @@ except:
         #multi_year_investment=True,
     )
 
+network.generators_t.p.to_csv('../outputs/data_tables/timeseries_generation.csv', index=True)
 network.export_to_netcdf('../outputs/solved_networks/test.nc')
