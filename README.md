@@ -53,6 +53,14 @@
 ### Want to use, develop or support this project?
 We strongly welcome anyone interested in collaborating on this or future related projects. If you have any ideas, suggestions or encounter problems, feel invited to file issues or make pull requests on GitHub. To discuss ideas for the project, please contact [@Abhishek Shivakumar](mailto:abhishek@transitionzero.org).
 
+## Similar works
+We relied on several excellent previous analyses to do this work. In particular, we were influenced by: 
+
+- Riepin and Brown (2024) On the means, costs, and system-level impacts of 24/7 carbon-free energy procurement. [doi.org/10.1016/j.esr.2024.101488](doi.org/10.1016/j.esr.2024.101488).
+- TU Berlin's study of 24/7 Carbon-Free Energy procurement in Europe ([link](https://github.com/PyPSA/247-cfe)).
+- The Zero Lab's (Princeton University) analysis of electricity System and market impacts of time-based attribute trading and 24/7 carbon-free electricity procurement in the USA ([link](https://acee.princeton.edu/24-7/))
+
+
 ## Licence
 
 <!-- - [Handriyanti Diah Puspitarini](https://www.transitionzero.org/team/handriyanti-diah-puspitarini)
