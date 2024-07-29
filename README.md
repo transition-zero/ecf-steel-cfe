@@ -1,10 +1,11 @@
 <div style="display: flex; justify-content: space-around; align-items: center;">
   <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/transition-zero/.github/raw/main/profile/img/logo-dark.png">
-    <img alt="TransitionZero Logo" height="50px" width="300px" src="https://github.com/transition-zero/.github/raw/main/profile/img/logo-light.png">
+    <source media="(prefers-color-scheme: dark)" srcset="https://github.com/transition-zero/tza-google-cfe/blob/refactor-for-tz-pypsa/img/logo.png">
+    <img alt="TransitionZero Logo" width="600 px" src="https://github.com/transition-zero/tza-google-cfe/blob/refactor-for-tz-pypsa/img/logo.png">
   </picture>
 </div>
 
+<!-- height="50px" width="300px" -->
 
 # TransitionZero: 24/7 Carbon Free Energy (CFE) in Asia
 
