@@ -56,7 +56,7 @@ We strongly welcome anyone interested in collaborating on this or future related
 ## Similar works
 We relied on several excellent previous analyses to do this work. In particular, we were influenced by: 
 
-- Riepin and Brown (2024) On the means, costs, and system-level impacts of 24/7 carbon-free energy procurement. [doi.org/10.1016/j.esr.2024.101488](doi.org/10.1016/j.esr.2024.101488).
+- Riepin and Brown (2024) On the means, costs, and system-level impacts of 24/7 carbon-free energy procurement. [doi.org/10.1016/j.esr.2024.101488](https://doi.org/10.1016/j.esr.2024.101488).
 - TU Berlin's study of 24/7 Carbon-Free Energy procurement in Europe ([link](https://github.com/PyPSA/247-cfe)).
 - The Zero Lab's (Princeton University) analysis of electricity System and market impacts of time-based attribute trading and 24/7 carbon-free electricity procurement in the USA ([link](https://acee.princeton.edu/24-7/))
 
