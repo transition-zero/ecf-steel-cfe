@@ -1,3 +1,17 @@
+
+<picture>
+$PLACEHOLDER$<div>
+   <img alt="TransitionZero Logo" width="300px" src="https://github.com/transition-zero/.github/raw/main/profile/img/logo-light.png">
+   <img alt="TransitionZero Logo (Dark)" width="300px" src="https://github.com/transition-zero/.github/raw/main/profile/img/logo-dark.png">
+</div>
+  <source media="(prefers-color-scheme: dark)" srcset="https://github.com/transition-zero/.github/raw/main/profile/img/logo-dark.png">
+  <img alt="TransitionZero Logo" width="300px" src="https://github.com/transition-zero/.github/raw/main/profile/img/logo-light.png">
+  <a href="https://www.transitionzero.org/">
+</picture>
+
+# TZ-Analysis-PyPSA
+
+
 ## Getting started:
 
 - Clone this repository
