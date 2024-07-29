@@ -1,4 +1,2 @@
-notebooks/_archived.ipynb
-.DS_Store
-data/~$system_inputs.xlsx
-docs/*
+scrap/*
+*_GITHUB_TOKEN_
