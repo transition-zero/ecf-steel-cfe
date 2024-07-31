@@ -1,0 +1,31 @@
+# -------------------------------------------------------------------------
+#
+#   CONFIGS
+#   
+#     xxx
+#
+#     Authors:
+#       - @amanmajid
+#
+# -------------------------------------------------------------------------
+
+paths:
+  output_model_runs: '../outputs/model_runs/'
+
+global_vars:
+  year: 2030
+  frequency: 24h
+  set_global_constraints: false
+  backstop: false
+  solver: 'gurobi'
+
+
+model_runs:
+  - name: SGP-MYS
+    core_model: ASEAN
+    select_nodes:
+      - SGPXX
+      - MYSPE
+      - MYSSK
+      - MYSSH
+    backstop: false
