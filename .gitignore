@@ -1,2 +1,4 @@
 scrap/*
 *_GITHUB_TOKEN_
+*.ipynb
+__pycache__/
