@@ -82,7 +82,7 @@ def run_annual_matching_scenario(
 
     network.export_to_netcdf(
         os.path.join(
-            configs['paths']['output_model_runs'], run['name'], 'solved_networks', 'annual_matching_' + str(configs['global_vars']['year']) + '.nc'
+            configs['paths']['output_model_runs'], run['name'], 'solved_networks', 'annual_matching_' + str(configs['global_vars']['year']) + '_cfe' + str(int(run['cfe_score']*100)) + '.nc'
         )
     )
 

@@ -71,7 +71,7 @@ TODO
  - **Essential Model Features:**
     - [x] Separate PPA to its own bus
     - [x] Add C&I to brownfield network for consistency
-    - [ ] Add annual matching constraint
+    - [x] Add annual matching constraint
     - [ ] Add ability to allow imported CFE
 
  - **Analysis:**
