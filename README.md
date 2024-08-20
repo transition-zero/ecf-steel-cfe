@@ -82,6 +82,3 @@ TODO
 
  - **Data needs:**
     - [ ] % of demand attributed to C&I in Malaysia and Singapore
-    - [ ] 
-    - [ ] 
-    - [ ] 
