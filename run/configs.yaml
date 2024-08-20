@@ -16,9 +16,11 @@ paths:
 global_vars:
   year: 2030
   frequency: 1h
+  timesteps: 744
   set_global_constraints: false
   backstop: false
   solver: 'gurobi'
+  ci_label: 'c&i-ppa' # this is a unique identifier for all CFE attributes in the network
 
 
 model_runs:
@@ -26,20 +28,19 @@ model_runs:
     palette: palette_1
     core_model: ASEAN
     select_nodes:
-      - SGPXX
       - MYSPE
       - MYSSK
       - MYSSH
-    nodes_with_cfe_load:
-      - SGPXX
+    nodes_with_ci_load:
       - MYSPE
       - MYSSK
       - MYSSH
-    cfe_load_fraction: 0.1 # assume 10% of load curve is to be matched by CFE PPA
+    ci_load_fraction: 0.1 # assume 10% of load curve is to be matched by C&I PPA
+    cfe_score: 1.0
     backstop: false
 
 
-cfe_technology_palette:
+technology_palette:
   palette_1:
     - photovoltaic-unspecified
     - wind-offshore-unspecified
