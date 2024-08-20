@@ -65,20 +65,3 @@ We relied on several excellent previous analyses to do this work. In particular,
 
 ## Licence
 TODO
-
-## TODO
-
- - **Essential Model Features:**
-    - [x] Separate PPA to its own bus
-    - [x] Add C&I to brownfield network for consistency
-    - [x] Add annual matching constraint
-    - [ ] Add ability to allow imported CFE
-
- - **Analysis:**
-    - [ ] Cost comparison between brownfield, annual matching and CFE
-    - [ ] Generation capacity comparison between brownfield, annual matching and CFE
-    - [ ] Storage capacity comparison between brownfield, annual matching and CFE
-    - [ ] Trade-off curve: CFE score vs costs
-
- - **Data needs:**
-    - [ ] % of demand attributed to C&I in Malaysia and Singapore
