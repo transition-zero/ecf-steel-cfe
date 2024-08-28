@@ -17,31 +17,62 @@ global_vars:
   year: 2030
   frequency: 1h
   timesteps: 744
-  set_global_constraints: false
-  backstop: false
   solver: gurobi
   ci_label: c&i-ppa # this is a unique identifier for all CFE attributes in the network
+  backstop: false
+  enable_fossil_charging: false
+  enable_additionality: true
+  set_global_constraints: false
+  maximum_excess_export: 0.1
+
 
 model_runs:
-  - name: SGP-MYS
+  - name: SGP
     palette: palette_1
     core_model: ASEAN
     select_nodes:
       - MYSPE
-      - MYSSK
-      - MYSSH
+      # - MYSSK
+      # - MYSSH
     nodes_with_ci_load:
       - MYSPE
-      - MYSSK
-      - MYSSH
-    ci_load_fraction: 0.1 # percentage of nodal demand is attributed to C&I
+      # - MYSSK
+      # - MYSSH
+    ci_load_fraction: 0.2 # percentage of nodal demand is attributed to C&I
     cfe_score: 
       # percentage of C&I electricity demand that is met by carbon-free energy PPA
-      # 0.50 = 50%
-      - 0.75
-      # - 1.00
+      # 0.10 = 10% CFE matching
+      - 1.0
     allow_grid_expansion: false
     backstop: false
+
+  # - name: SGP-MYS
+  #   palette: palette_1
+  #   core_model: ASEAN
+  #   select_nodes:
+  #     - MYSPE
+  #     - MYSSK
+  #     - MYSSH
+  #   nodes_with_ci_load:
+  #     - MYSPE
+  #     - MYSSK
+  #     - MYSSH
+  #   ci_load_fraction: 0.1 # percentage of nodal demand is attributed to C&I
+  #   cfe_score: 
+  #     # percentage of C&I electricity demand that is met by carbon-free energy PPA
+  #     # 0.10 = 10% CFE matching
+  #     - 0.1
+  #     - 0.2
+  #     - 0.3
+  #     - 0.4
+  #     - 0.5
+  #     - 0.6
+  #     - 0.7
+  #     - 0.8
+  #     - 0.9
+  #     - 1.0
+  #   allow_grid_expansion: false
+  #   backstop: false
 
 
 technology_palette:
