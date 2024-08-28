@@ -50,9 +50,9 @@ if __name__ == '__main__':
                 )
             )
 
-            scenarios['annual_matching_' + str(run['cfe_score'])] = annual_matching
+            scenarios['annual_matching_' + str(cfe_score)] = annual_matching
 
-            print(f'Computing annual matching scenario (CFE: {int(cfe_score*100)})...')
+            print(f'Computing hourly matching scenario (CFE: {int(cfe_score*100)})...')
 
             hourly_matching = (
                 run_hourly_matching_scenario(
@@ -63,7 +63,7 @@ if __name__ == '__main__':
                 )
             )
 
-            scenarios['hourly_matching_' + str(run['cfe_score'])] = hourly_matching
+            scenarios['hourly_matching_' + str(cfe_score)] = hourly_matching
 
         # ----------------------------------------------------------------------
         # MAKE PLOTS FOR EACH SCENARIO
@@ -81,7 +81,7 @@ if __name__ == '__main__':
                 capacity,
                 carriers=brownfield_network.carriers,
                 width=1000,
-                height=400
+                height=400,
             )
         )
 
