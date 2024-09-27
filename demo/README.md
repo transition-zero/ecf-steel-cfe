@@ -31,7 +31,7 @@ where $r$ denotes generation and storage technologies procured by the C&I custom
 The next constraint ensures that the total procurement by the C&I customer meets a defined CFE score ($S^{*}$). This constraint is set as: 
 
 $$
-\frac{\sum_{t} \left( CleanGenProcured_{(r,t)} - Excess_{(i,t)} + GridImportCFE_{(i,t)} . GridImport_{(i,t)} \right)}{\sum_{t} \left( Demand_{(i,t) + StorageCharge_{(r,t)} - StorageDischarge_{(r,t)} \right)} \geq S^{*}
+\frac{\sum_{t} \left( CleanGenProcured_{(r,t)} - Excess_{(i,t)} + GridImportCFE_{(i,t)} . GridImport_{(i,t)} \right)}{\sum_{t} \left( Demand_{(i,t)} + StorageCharge_{(r,t)} - StorageDischarge_{(r,t)} \right)} \geq S^{*}
 $$
 
 **Constraint 3: Set a limit on the excess (exports to grid)**
