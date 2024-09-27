@@ -22,7 +22,7 @@ There are three fundamental constraints for 24/7 CFE. These are itemised below.
 
 <!-- $$\left( \sum_{k=1}^n a_k b_k \right)^2 \leq \left( \sum_{k=1}^n a_k^2 \right) \left( \sum_{k=1}^n b_k^2 \right)$$ -->
 
-$$D_{i,t} + \bar{s}_{r,t} - \underline{s}_{r,t} = g_{r,t} - e_{i,t} + u_{i,t}$$
+$$D_{i,t} + s_{r,t} - s_{r,t} = g_{r,t} - e_{i,t} + u_{i,t}$$
 
 The hourly matching constraint ensures that the demand $D$ of the commercial and industrial consumer $i$ must be met by clean electricity at any given time step, such that:
 
