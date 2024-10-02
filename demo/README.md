@@ -36,7 +36,7 @@ $$
 
 **Constraint 3: Set a limit on the excess (exports to grid)**
 
-An "excess" occurs when the total electricity generation from assets procured by participating consumers exceeds their demand in a given hour. In the model, we assume this excess can either be curtailed or sold to the regional electricity market at wholesale prices. A constraint is set, limiting the amount of excess generation sold to the regional grid to $u=20%$ of the participating consumers' annual demand, such that:
+An "excess" occurs when the total electricity generation from assets procured by participating consumers exceeds their demand in a given hour. In the model, we assume this excess can either be curtailed or sold to the regional electricity market at wholesale prices. A constraint is set, limiting the amount of excess generation sold to the regional grid to $u=0.2$ (i.e., 20%) of the participating consumers' annual demand, such that:
 
 $$
 \sum_t Excess_{(i,t)} \leq u . \left( \sum_t Demand_{(i,t)} \right)
