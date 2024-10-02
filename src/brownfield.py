@@ -51,9 +51,10 @@ def run_brownfield_scenario(
         network.loads_t.p_set[bus] *= (1 - run['ci_load_fraction'])
 
         # add C&I load to bus as a separate load
+        ci_load = bus + '-' + configs['global_vars']['ci_label']
         network.add(
             "Load",
-            bus + '-' + configs['global_vars']['ci_label'],
+            ci_load,
             bus=bus,
             p_set=network.loads_t.p_set[bus] * run['ci_load_fraction'],
         )
@@ -66,16 +67,17 @@ def run_brownfield_scenario(
     for bus in run['nodes_with_ci_load']:
 
         # add bus for C&I PPA
+        ci_bus = bus + '-' + configs['global_vars']['ci_label'] + '-' + 'System'
         network.add(
             "Bus",
-            bus + '-' + configs['global_vars']['ci_label'],
+            ci_bus,
         )
         
-        # add virtual link connecting bus to C&I bus
+        # add link to represent C&I grid imports
         network.add(
             "Link",
-            name='virtual-link-' + bus + '-' + configs['global_vars']['ci_label'] + '-' + bus,
-            bus0=bus + '-' + configs['global_vars']['ci_label'],
+            name=ci_bus + '-' + 'grid-import',
+            bus0=ci_bus,
             bus1=bus,
             type='HVAC',
             carrier='transmission-HVAC-overhead',
@@ -88,11 +90,12 @@ def run_brownfield_scenario(
             p_min_pu=0,
         )
 
+        # add link to represent C&I grid exports
         network.add(
             "Link",
-            name='virtual-link-' + bus + '-' + bus + '-' + configs['global_vars']['ci_label'],
+            name=ci_bus + '-' + 'grid-export',
             bus0=bus,
-            bus1=bus + '-' + configs['global_vars']['ci_label'],
+            bus1=ci_bus,
             type='HVAC',
             carrier='transmission-HVAC-overhead',
             build_year=configs['global_vars']['year'],
@@ -104,12 +107,11 @@ def run_brownfield_scenario(
             p_min_pu=0,
         )
 
-    # ----------------------------------------------------------------------
-    # Step 3: 
-    # Add new generators and storages solely for C&I PPA
-    # ----------------------------------------------------------------------
+        # ----------------------------------------------------------------------
+        # Step 3: 
+        # Add new generators and storages solely for C&I PPA
+        # ----------------------------------------------------------------------
 
-    for bus in run['nodes_with_ci_load']:
         for technology in configs['technology_palette'][run['palette']]:
             # add generator if technolgy is a generator
             if technology in network.generators.type.unique():
@@ -140,9 +142,9 @@ def run_brownfield_scenario(
                 # add generator
                 network.add(
                     'Generator', # PyPSA component
-                    bus + '-' + technology + '-ext-' + str(params['build_year']) + '-' + configs['global_vars']['ci_label'], # generator name
+                    ci_bus + '-' + technology + '-ext-' + str(params['build_year']) + '-' + 'PPA', # generator name
                     type = technology, # technology type (e.g., solar, gas-ccgt etc.)
-                    bus = bus + '-' + configs['global_vars']['ci_label'], # region/bus/balancing zone
+                    bus = ci_bus, # region/bus/balancing zone
                     # ---
                     # unique technology parameters by bus
                     p_nom = 0, # starting capacity (MW)
@@ -186,19 +188,18 @@ def run_brownfield_scenario(
                     ['value']
                     .to_dict()
                 )
-
-                ppa_bus = bus + '-' + configs['global_vars']['ci_label']
                 
                 # add bus for storage
+                ci_bus_storage = ci_bus + '-' + params['carrier']
                 network.add(
                     'Bus',
-                    ppa_bus + '-' + params['carrier'],
+                    ci_bus_storage,
                 )
 
                 network.add(
                     "StorageUnit",
-                    ppa_bus + '-' + params['carrier'],
-                    bus = ppa_bus + '-' + params['carrier'],
+                    ci_bus + '-' + params['carrier'],
+                    bus = ci_bus + '-' + params['carrier'],
                     p_nom_extendable = False,
                     cyclic_state_of_charge=True,
                     max_hours=params['max_hours'],
@@ -207,22 +208,24 @@ def run_brownfield_scenario(
                     capital_cost=params['capital_cost'],
                 )
 
+                # add link to represent storage charge
                 network.add(
                     "Link",
-                    ppa_bus + '-' + params['carrier'] + "-charge",
-                    bus0 = ppa_bus,
-                    bus1 = ppa_bus + '-' + params['carrier'],
+                    ci_bus + '-' + params['carrier'] + "-charge",
+                    bus0 = ci_bus,
+                    bus1 = ci_bus_storage,
                     efficiency = 0.9,
                     p_nom_extendable = False,
                     #capital_cost=params['capital_cost'],
                     #marginal_cost=params['marginal_cost'],
                 )
 
+                # add link to represent storage discharge
                 network.add(
                     "Link",
-                    ppa_bus + '-' + params['carrier'] + "-discharge",
-                    bus0 = ppa_bus + '-' + params['carrier'],
-                    bus1 = ppa_bus,
+                    ci_bus + '-' + params['carrier'] + "-discharge",
+                    bus0 = ci_bus_storage,
+                    bus1 = ci_bus,
                     p_nom_extendable = False,
                     efficiency = params['efficiency_dispatch'],
                     marginal_cost=params['marginal_cost'],

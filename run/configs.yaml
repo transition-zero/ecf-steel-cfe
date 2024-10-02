@@ -18,12 +18,12 @@ global_vars:
   frequency: 1h
   timesteps: 744
   solver: gurobi
-  ci_label: c&i-ppa # this is a unique identifier for all CFE attributes in the network
+  ci_label: C&I # this is a unique identifier for all CFE attributes in the network
   backstop: false
   enable_fossil_charging: false
   enable_additionality: true
   set_global_constraints: false
-  maximum_excess_export: 0.05
+  maximum_excess_export: 0.20
 
 
 model_runs:
