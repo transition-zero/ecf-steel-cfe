@@ -3,3 +3,4 @@ scrap/*
 *.DS_Store
 __pycache__/
 src/scrap.py
+outputs/*

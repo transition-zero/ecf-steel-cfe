@@ -28,7 +28,7 @@ global_vars:
 
 model_runs:
 
-  - name: SGP
+  - name: prelim-runs-10-2024
     palette: palette_1
     stock_model: ASEAN
     select_nodes:
@@ -43,13 +43,13 @@ model_runs:
     cfe_score: 
       # percentage of C&I electricity demand that is met by carbon-free energy PPA
       # 0.10 = 10% CFE matching
-      # - 0.10
+      - 0.10
       # - 0.20
       # - 0.30
       # - 0.40
-      # - 0.50
+      - 0.50
       # - 0.60
-      - 0.70
+      # - 0.70
       - 0.80
       - 0.90
       - 1.00

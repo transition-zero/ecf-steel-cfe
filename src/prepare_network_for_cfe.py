@@ -1,0 +1,214 @@
+import pypsa
+
+def PrepareNetworkForCFE(
+        network : pypsa.Network, 
+        buses_with_ci_load : list,
+        ci_load_fraction : float,
+        technology_palette : list,
+        p_nom_extendable : bool,
+    ) -> pypsa.Network:
+
+    '''
+
+        This function takes a PyPSA network and prepares it for CFE modelling.
+            It works by creating a sub-system for a C&I asset/system on a 
+            defined set of buses in the network. 
+
+        Inputs:
+        ----------------------------------------------------------------
+
+            - network (pypsa.Network): The PyPSA network to be prepared.
+            - buses_with_ci_load (list): List of buses on which to model a C&I system/asset.
+            - ci_load_fraction (float): Fraction of the original load to be assigned to the C&I load.
+            - technology_palette (list): Technologies to add (generators and storages)
+    '''
+    
+    # STEP 1:
+    # Loop through each bus on which we want to model a C&I system/asset
+
+    for bus in buses_with_ci_load:
+
+        # define names
+        ci_bus_name = f'{bus} C&I Grid'
+        ci_load_name = f'{bus} C&I Load'
+        ci_storage_bus_name = f'{bus} C&I Storage'
+
+        # add a bus for the C&I system
+        network.add(
+            'Bus',
+            ci_bus_name,
+            x = network.buses.x.iloc[0] + 1, # add jitter
+            y = network.buses.y.iloc[0] + 1, # add jitter
+        )
+
+        # add another bus to connect C&I bus with energy storage
+        network.add(
+            'Bus',
+            ci_storage_bus_name,
+            x = network.buses.x.iloc[0] - 1, # add jitter
+            y = network.buses.y.iloc[0] - 1, # add jitter
+        )
+
+        # add C&I load
+        network.add(
+            "Load",
+            ci_load_name,
+            bus = ci_bus_name,
+            p_set = network.loads_t.p_set[bus] * ci_load_fraction,
+        )
+
+        # now subtract the C&I load from the overall load to prevent double-counting
+        network.loads_t.p_set[bus] = network.loads_t.p_set[bus] - network.loads_t.p_set[ci_load_name]
+
+        # STEP 2:
+        # Add virtual links between buses to represent flows of electricity.
+        # Specifically, we add the following:
+        #   - LocalGrid <-> C&I system
+        #   - C&I system <-> C&I storage
+
+        # LocalGrid <-> C&I system
+        network.add(
+            "Link",
+            f"{bus} C&I Grid Imports",
+            bus0=bus, 
+            bus1=ci_bus_name, 
+            p_nom=0,
+            p_nom_extendable=True, # keep this as True to prevent infeasibilities
+            # add small capital and marginal costs to prevent model infeasibilities
+            marginal_cost=0.01, 
+            capital_cost=0.01,
+        )
+
+        network.add(
+            "Link",
+            f"{bus} C&I Grid Exports",
+            bus0=ci_bus_name, 
+            bus1=bus,
+            p_nom=0,
+            p_nom_extendable=p_nom_extendable,
+            # add small capital and marginal costs to prevent model infeasibilities
+            marginal_cost=0.01, 
+            capital_cost=0.01,
+        )
+
+        # C&I system <-> C&I storage
+        network.add(
+            "Link",
+            f"{bus} C&I Storage Charge",
+            bus0=ci_bus_name, 
+            bus1=ci_storage_bus_name, 
+            p_nom=0,
+            p_nom_extendable=p_nom_extendable,
+            # add small capital and marginal costs to prevent model infeasibilities
+            marginal_cost=0.01, 
+            capital_cost=0.01,
+        )
+
+        network.add(
+            "Link",
+            f"{bus} C&I Storage Discharge",
+            bus0=ci_bus_name, 
+            bus1=ci_storage_bus_name, 
+            p_nom=0,
+            p_nom_extendable=p_nom_extendable,
+            # add small capital and marginal costs to prevent model infeasibilities
+            marginal_cost=0.01, 
+            capital_cost=0.01,
+        )
+
+        # STEP 3:
+        # Add generators and storages to C&I bus within the technology palette. 
+        # This represents the technologies procured in the C&I's PPA.
+
+        for technology in technology_palette:
+
+            # check if technology is generator or storage
+            if technology in network.generators.type.unique():
+                
+                # get params from existing technologies
+                params = (
+                    network
+                    .generators
+                    .loc[ 
+                        network.generators.type == technology
+                    ]
+                    .groupby(by='type')
+                    .first()
+                    .melt()
+                    .set_index('attribute')
+                    ['value']
+                    .to_dict()
+                )
+
+                # get capacity factors if technology is renewable
+                cf = network.generators_t.p_max_pu.filter(regex = bus + '-' + technology)
+                if cf.empty:
+                    cf = params['p_max_pu']
+                else:
+                    cf = cf.iloc[:,0].values
+
+                # add generator
+                network.add(
+                    'Generator', # PyPSA component
+                    ci_bus_name + '-' + technology + '-ext-' + str(params['build_year']) + '-' + 'PPA', # generator name
+                    type = technology, # technology type (e.g., solar, gas-ccgt etc.)
+                    bus = ci_bus_name, # region/bus/balancing zone
+                    # ---
+                    # unique technology parameters by bus
+                    p_nom = 0, # starting capacity (MW)
+                    p_nom_min = 0, # minimum capacity (MW)
+                    p_max_pu = cf, # capacity factor
+                    p_min_pu = params['p_min_pu'], # minimum capacity factor
+                    efficiency = params['efficiency'], # efficiency
+                    ramp_limit_up = params['ramp_limit_up'], # per unit
+                    ramp_limit_down = params['ramp_limit_down'], # per unit
+                    # ---
+                    # universal technology parameters
+                    p_nom_extendable = p_nom_extendable, # can the model build more?
+                    capital_cost = params['capital_cost'], # currency/MW
+                    marginal_cost = params['marginal_cost'], # currency/MWh
+                    carrier = params['carrier'], # commodity/carrier
+                    build_year = params['build_year'], # year available from
+                    lifetime = params['lifetime'], # years
+                    start_up_cost = params['start_up_cost'], # currency/MW
+                    shut_down_cost = params['shut_down_cost'], # currency/MW
+                    committable = params['committable'], # UNIT COMMITMENT
+                    ramp_limit_start_up = params['ramp_limit_start_up'], # 
+                    ramp_limit_shut_down = params['ramp_limit_shut_down'], # 
+                    min_up_time = params['min_up_time'], # 
+                    min_down_time = params['min_down_time'], # 
+                )
+                
+            elif technology in network.storage_units.carrier.unique():
+                
+                # get params
+                params = (
+                    network
+                    .storage_units
+                    .loc[ 
+                        network.storage_units.carrier == technology
+                    ]
+                    .groupby(by='type')
+                    .first()
+                    .melt()
+                    .set_index('attribute')
+                    ['value']
+                    .to_dict()
+                )
+
+                network.add(
+                    "StorageUnit",
+                    ci_bus_name + '-' + params['carrier'],
+                    bus = ci_storage_bus_name,
+                    p_nom_extendable = p_nom_extendable,
+                    cyclic_state_of_charge=True,
+                    max_hours=params['max_hours'],
+                    build_year=params['build_year'],
+                    carrier=params['carrier'],
+                    capital_cost=params['capital_cost'],
+                )
+
+            else:
+                raise ValueError(f"Invalid technology: {technology}")
+            
+    return network
