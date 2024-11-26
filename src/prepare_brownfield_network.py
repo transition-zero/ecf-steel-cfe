@@ -9,10 +9,12 @@ def SetupBrownfieldNetwork(run, configs) -> pypsa.Network:
     Sets up the brownfield network based on the provided run configuration and global variables.
 
     Parameters:
+    -----------
     run (dict): A dictionary containing run-specific configurations such as 'stock_model', 'select_nodes', 'backstop', and 'allow_grid_expansion'.
     configs (dict): A dictionary containing global configuration variables including 'frequency', 'timesteps', 'year', and 'set_global_constraints'.
 
     Returns:
+    -----------
     pypsa.Network: A PyPSA Network object with the brownfield system set up according to the provided configurations.
 
     """

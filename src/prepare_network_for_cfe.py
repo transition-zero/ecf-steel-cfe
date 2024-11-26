@@ -1,30 +1,54 @@
 import pypsa
 
 def PrepareNetworkForCFE(
-        network : pypsa.Network, 
-        buses_with_ci_load : list,
-        ci_load_fraction : float,
-        technology_palette : list,
-        p_nom_extendable : bool,
+        network: pypsa.Network, 
+        buses_with_ci_load: list,
+        ci_load_fraction: float,
+        technology_palette: list,
+        p_nom_extendable: bool,
     ) -> pypsa.Network:
 
-    '''
+    """
+    Prepares a PyPSA network for 24/7 carbon-free energy (CFE) modelling. It does so by creating a sub-system for a 
+    Commercial & Industrial (C&I) asset/system on a defined set of buses in the network. This function modifies the 
+    given PyPSA network by adding new buses, loads, links, generators, and storage units to represent the C&I system 
+    and its interactions with the local grid.
 
-        This function takes a PyPSA network and prepares it for CFE modelling.
-            It works by creating a sub-system for a C&I asset/system on a 
-            defined set of buses in the network. 
+    Parameters:
+    -----------
+    network : pypsa.Network
+        The PyPSA network to be prepared (e.g., Brownfield Network).
+    buses_with_ci_load : list
+        List of buses on which to model a C&I system/asset.
+    ci_load_fraction : float
+        Fraction of the original load to be assigned to the C&I load.
+    technology_palette : list
+        List of technologies (generators and storages) to add to the C&I system.
+    p_nom_extendable : bool
+        Flag indicating whether the nominal power of links and generators can be extended.
 
-        Inputs:
-        ----------------------------------------------------------------
+    Returns:
+    -----------
+    pypsa.Network
+        The modified PyPSA network with the C&I system integrated.
 
-            - network (pypsa.Network): The PyPSA network to be prepared.
-            - buses_with_ci_load (list): List of buses on which to model a C&I system/asset.
-            - ci_load_fraction (float): Fraction of the original load to be assigned to the C&I load.
-            - technology_palette (list): Technologies to add (generators and storages)
-    '''
+    Raises:
+    -----------
+    ValueError
+        If an invalid technology is provided in the technology_palette.
+
+    Notes:
+    -----------
+    - The function adds jitter to the coordinates of new buses to avoid overlap.
+    - Small capital and marginal costs are added to links to prevent model infeasibilities.
+    - The function ensures that the C&I load is subtracted from the overall load to prevent double-counting.
+
+    """
     
     # STEP 1:
-    # Loop through each bus on which we want to model a C&I system/asset
+    # Loop through each bus on which we want to model a C&I system/asset. 
+    # The logic here is to abstract the C&I system as a separate entity.
+    # This is done by adding a new bus, load, and storage unit to the network.
 
     for bus in buses_with_ci_load:
 
@@ -208,6 +232,7 @@ def PrepareNetworkForCFE(
                     capital_cost=params['capital_cost'],
                 )
 
+                # TODO!
                 # network.add(
                 #     "StorageUnit",
                 #     "hydrogen storage underground",
