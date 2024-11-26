@@ -176,7 +176,7 @@ def plot_results(path_to_run_dir: str):
         )
     )
 
-    emissions['emission_rate'] = emissions['emission'] / emissions['generation']
+    emissions['emission_rate'] = (emissions['emission'] / emissions['generation']) * 1000 # tCO2 / MWh -> gCO2 / kWh
 
     fig, ax0, ax1, ax2 = cplt.bar_plot_3row(width_ratios=[1,1,10], figsize=(10,4))
 
@@ -210,7 +210,7 @@ def plot_results(path_to_run_dir: str):
         sns.despine(ax=ax, left=False)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
 
-    ax0.set_ylabel('Emission Rate [tCO$_2$ MWh$^{-1}$]')
+    ax0.set_ylabel('Emission Rate [gCO$_2$ kWh$^{-1}$]')
     ax1.set_ylabel('')
     ax2.set_ylabel('')
 
@@ -247,7 +247,7 @@ def plot_results(path_to_run_dir: str):
         )
     )
 
-    ci_emissions['emission_rate'] = ci_emissions['emissions'] / ci_emissions['load']
+    ci_emissions['emission_rate'] = (ci_emissions['emissions'] / ci_emissions['load']) * 1000 # tCO2 / MWh -> gCO2 / kWh
 
     fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[1,10], figsize=(10,4))
 
@@ -273,7 +273,7 @@ def plot_results(path_to_run_dir: str):
         sns.despine(ax=ax, left=False)
         ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
 
-    ax0.set_ylabel('Emission Rate [tCO$_2$ MWh$^{-1}$]')
+    ax0.set_ylabel('Emission Rate [gCO$_2$ kWh$^{-1}$]')
     ax1.set_ylabel('')
 
     ax0.set_xlabel('')
@@ -318,18 +318,21 @@ def plot_results(path_to_run_dir: str):
         costs
         .loc[costs['Scenario'] == 'Reference']
         .pivot_table(columns='carrier', index='Scenario', values='annual_system_cost [M$]')
+        .div(1e3)
     )
 
     res = (
         costs
         .loc[costs['Scenario'] == '100% RES']
         .pivot_table(columns='carrier', index='Scenario', values='annual_system_cost [M$]')
+        .div(1e3)
     )
 
     cfe = (
         costs
         .loc[costs['Scenario'].str.contains('CFE')]
         .pivot_table(columns='carrier', index='CFE Score', values='annual_system_cost [M$]')
+        .div(1e3)
     )
 
     # ---
@@ -341,7 +344,7 @@ def plot_results(path_to_run_dir: str):
     res.plot(kind='bar', stacked=True, ax=ax1, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
     cfe.plot(kind='bar', stacked=True, ax=ax2, legend=True, color=[colors.get(x, '#333333') for x in res.columns])
 
-    ax0.set_ylabel('Total System Cost [M$]')
+    ax0.set_ylabel('Total System Cost\n[$ billion]')
 
     ax0.set_xlabel('')
     ax1.set_xlabel('')
@@ -586,7 +589,7 @@ def plot_results(path_to_run_dir: str):
     res.plot(kind='bar', stacked=True, ax=ax0, legend=False)
     cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True)
 
-    ax0.set_ylabel('C&I Energy Balance\n[% of load]')
+    ax0.set_ylabel('C&I Procurement Mix\n[% of load]')
     ax1.set_xlabel('CFE Score [%]')
 
     for ax in [ax0, ax1]:
