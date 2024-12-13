@@ -212,7 +212,7 @@ def RunRES100(
             CI_GridExport.sum() <= CI_Demand * configs['global_vars']['maximum_excess_export'],
         )
 
-    N_RES_100.optimize.solve_model(solver_name = 'gurobi')
+    N_RES_100.optimize.solve_model(solver_name = configs['global_vars']['solver'])
 
     N_RES_100.export_to_netcdf(
         os.path.join(
@@ -278,7 +278,7 @@ def RunCFE(N_BROWNFIELD : pypsa.Network, CFE_Score):
     )
 
     # optimise
-    N_CFE.optimize.solve_model(solver_name = 'gurobi')
+    N_CFE.optimize.solve_model(solver_name = configs['global_vars']['solver'])
 
     # get GridCFE
     GridCFE = GetGridCFE(N_CFE, ci_identifier)
