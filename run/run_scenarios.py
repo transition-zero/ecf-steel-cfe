@@ -118,7 +118,7 @@ def RunBrownfieldSimulation(run, configs):
     print('prepared network for CFE')
     print('Begin solving...')
 
-    N_BROWNFIELD.optimize(solver_name='gurobi')
+    N_BROWNFIELD.optimize(solver_name=configs['global_vars']['solver'])
 
     N_BROWNFIELD.export_to_netcdf(
         os.path.join(
@@ -296,7 +296,7 @@ def RunCFE(N_BROWNFIELD : pypsa.Network, CFE_Score):
             CFE_Score,
             configs['global_vars']['maximum_excess_export'],
         )
-        N_CFE.optimize.solve_model(solver_name='gurobi')
+        N_CFE.optimize.solve_model(solver_name=configs['global_vars']['solver'])
         GridCFE = GetGridCFE(N_CFE, ci_identifier)
         count += 1
         GridSupplyCFE[f'iteration_{count}'] = GridCFE

@@ -150,6 +150,18 @@ def PrepareNetworkForCFE(
             if technology in network.generators.type.unique():
                 
                 # get params from existing technologies
+                print(
+                    network
+                    .generators
+                    .loc[ 
+                        network.generators.type == technology
+                    ]
+                    .groupby(by='type')
+                    .first()
+                    .melt()
+                )
+
+
                 params = (
                     network
                     .generators
@@ -159,7 +171,7 @@ def PrepareNetworkForCFE(
                     .groupby(by='type')
                     .first()
                     .melt()
-                    .set_index('attribute')
+                    .set_index('variable')
                     ['value']
                     .to_dict()
                 )
@@ -215,7 +227,7 @@ def PrepareNetworkForCFE(
                     .groupby(by='type')
                     .first()
                     .melt()
-                    .set_index('attribute')
+                    .set_index('variable')
                     ['value']
                     .to_dict()
                 )
