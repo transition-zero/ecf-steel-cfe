@@ -150,18 +150,6 @@ def PrepareNetworkForCFE(
             if technology in network.generators.type.unique():
                 
                 # get params from existing technologies
-                print(
-                    network
-                    .generators
-                    .loc[ 
-                        network.generators.type == technology
-                    ]
-                    .groupby(by='type')
-                    .first()
-                    .melt()
-                )
-
-
                 params = (
                     network
                     .generators
@@ -243,8 +231,20 @@ def PrepareNetworkForCFE(
                     carrier=params['carrier'],
                     capital_cost=params['capital_cost'],
                 )
+                
+                '''
 
-                # TODO!
+                TODO!
+                
+                Hydrogen storages need to be modelled with fundamental stores (i.e., PyPSA Store components)
+                
+                This is described in the links below:
+                    - https://fneum.github.io/data-science-for-esm/09-workshop-pypsa.html
+                    - https://groups.google.com/g/pypsa/c/Owf6_6aHhRM
+                    - https://pypsa.readthedocs.io/en/stable/examples/replace-generator-storage-units-with-store.html
+                
+                '''
+
                 # network.add(
                 #     "StorageUnit",
                 #     "hydrogen storage underground",

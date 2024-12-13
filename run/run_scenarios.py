@@ -140,7 +140,7 @@ def RunRES100(
     '''
     
     # make a copy of the brownfield
-    N_RES_100 = N_BROWNFIELD.copy()
+    N_RES_100 = N_BROWNFIELD#.copy()
 
     # post-process to set what is expandable and non-expandable
     N_RES_100 = PostProcessBrownfield(N_RES_100)
@@ -230,7 +230,7 @@ def RunCFE(N_BROWNFIELD : pypsa.Network, CFE_Score):
     '''Run 24/7 CFE scenario
     '''
 
-    N_CFE = N_BROWNFIELD.copy()
+    N_CFE = N_BROWNFIELD#.copy()
     N_CFE = PostProcessBrownfield(N_CFE)
 
     # init linopy model
