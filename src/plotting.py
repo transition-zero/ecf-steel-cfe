@@ -1,27 +1,202 @@
 import pandas as pd
+import seaborn as sns
 import plotly.express as px
+import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 
-def plot_capacity_bar(
-        capacity : pd.DataFrame,
-        carriers : pd.DataFrame,
-        x : str = 'scenario',
-        y : str = 'p_nom_opt',
-        hue : str = 'carrier',
-        height : int = 500,
-        width : int = 800,
-        xlabel : str = 'Scenario',
-        ylabel : str = 'Optimal Capacity (p_nom_opt)',
-        title : str = '',
-    ):
+from . import get as cget
+from . import plotting as cplt
 
-    return px.bar(
-        capacity,
-        x=x,
-        y=y,
-        color=hue,
-        color_discrete_map={carrier: carriers.loc[carrier].color for carrier in capacity.carrier.unique()},
-        title=title,
-        labels={y: ylabel, x: xlabel},
-        height=height,
-        width=width,
+def plot_cfe_hmap(n, ymax, ci_identifier='C&I'):
+    '''Plot the CFE score as a heatmap
+    '''
+    cfe_t = cget.get_cfe_score_ts(n, ci_identifier)
+    cfe_t.index = cfe_t.index.tz_localize('UTC').tz_convert('Asia/Singapore')
+    cfe_t['Hour'] = cfe_t.index.hour + 1
+    cfe_t['Day'] = cfe_t.index.day
+    cfe_t['Month'] = cfe_t.index.month
+
+    f = plt.figure(figsize=(9, 6))
+    gs = gridspec.GridSpec(1, 5, figure=f, wspace=0)
+    ax0 = f.add_subplot(gs[0, 0])
+    ax1 = f.add_subplot(gs[0, 1:])
+
+    # total system cost
+    cmap_dict = cplt.tech_color_palette()
+    fields_to_plot = ['Battery', 'Solar', 'Wind']
+
+    cost = (
+        cget
+        .get_total_annual_system_cost(n)
+        .pivot_table(
+            columns='carrier', 
+            values='annual_system_cost [M$]'
+        )
+        .drop([i for i in cget.get_total_annual_system_cost(n).carrier.unique() if i not in fields_to_plot], axis=1)
+        .div(1e3)
     )
+
+    cost.plot(
+        kind='bar', 
+        stacked=True,
+        ax=ax0,
+        color=[cmap_dict[carrier] for carrier in cost.columns],
+    )
+    
+
+    ax0.set_xticklabels([''])
+    ax0.tick_params(axis='both', which='both', length=0, pad=8)
+    ax0.set_title('Cost', loc='left', fontsize=9, fontweight='bold')
+    ax0.set_ylabel('Cost of Procurement ($ billion)')
+    ax0.legend(loc='upper left', frameon=False, fontsize='small')
+    ax0.set_ylim([0, round(ymax * 1.2, 1)])
+    sns.despine(ax=ax0, bottom=False, right=True, top=True)
+
+    # heatmap
+    cfe_t.pivot_table(
+        index='Day',
+        columns='Hour',
+        values='CFE Score',
+        aggfunc='mean'
+    ).pipe(
+        sns.heatmap,
+        cmap=sns.color_palette("blend:#000000,#c4ffdc", as_cmap=True),
+        ax=ax1,
+        cbar_kws={
+            'orientation':'vertical', 
+            'shrink':0.5,
+            'pad':0.03,
+            'ticks': [0, 1],
+            'format': '%.0f'
+        },
+        square=True,
+        xticklabels=11,
+        yticklabels=15,
+        linecolor='white',
+        linewidths=0.1,
+        vmin=0,
+        vmax=1,
+    )
+    colorbar = ax1.collections[0].colorbar
+    colorbar.set_ticks([0, 1])
+    colorbar.set_ticklabels(['100%\nDirty', '100%\nClean'])
+
+    ax1.set_xlabel('\nTime of Day (Hour)')
+    ax1.set_ylabel('')
+    ax1.set_xticklabels(['Morning', 'Noon', 'Evening'])
+    ax1.set_yticklabels(['Day 01', 'Day 15', 'Day 30'], rotation=0, fontsize=9)
+    ax1.tick_params(axis='both', which='both', length=0, pad=8)
+    return f, ax0, ax1
+
+
+def bar_plot_2row(
+        width_ratios=[1,8],
+        figsize=(10, 5),
+):
+    '''Create a 3-row bar plot with 3 subplots
+    '''
+    
+    #set_tz_theme()
+
+    # Create a figure
+    fig = plt.figure(figsize=figsize)
+
+    # Create a GridSpec with 1 row and 2 columns, setting the width ratios
+    gs = gridspec.GridSpec(1, 2, width_ratios=width_ratios)
+
+    # create subplots
+    ax0 = fig.add_subplot(gs[0])
+    ax1 = fig.add_subplot(gs[1], sharey=ax0)
+
+    return fig, ax0, ax1
+
+
+def bar_plot_3row(
+        width_ratios=[1, 1, 8],
+        figsize=(10, 5),
+):
+    '''Create a 3-row bar plot with 3 subplots
+    '''
+    
+    #set_tz_theme()
+
+    # Create a figure
+    fig = plt.figure(figsize=figsize)
+
+    # Create a GridSpec with 1 row and 2 columns, setting the width ratios
+    gs = gridspec.GridSpec(1, 3, width_ratios=width_ratios)
+
+    # create subplots
+    ax0 = fig.add_subplot(gs[0])
+    ax1 = fig.add_subplot(gs[1], sharey=ax0)
+    ax2 = fig.add_subplot(gs[2], sharey=ax0)
+
+    return fig, ax0, ax1, ax2
+
+
+def set_tz_theme():
+    '''Set the plotting theme for to match TransitionZero colour palette
+    '''
+
+    plt.rcParams.update({
+        'figure.facecolor': '#1F283D',  # Background color of the entire figure (outer area)
+        'axes.facecolor': '#1F283D',    # Background color of the plot (inside axes)
+        'axes.edgecolor': 'white',      # Color of the axes/box edges
+        'axes.labelcolor': 'white',     # Color of the axis labels
+        'xtick.color': 'white',         # Color of the x-tick labels
+        'ytick.color': 'white',         # Color of the y-tick labels
+        'axes.spines.top': False,       # Remove the top spine (optional)
+        'axes.spines.right': False,     # Remove the right spine (optional)
+        'font.family': 'Arial',         # Font family set to Arial
+        'axes.prop_cycle': plt.cycler(color=['#00C0B0', '#FE8348', '#008DCE', '#FFB405']),  # Custom color cycle
+        'grid.color': 'white',          # Gridline color (if enabled)
+        'grid.linestyle': ':',          # Gridline style (if enabled)
+        'grid.linewidth': 0.5,          # Gridline width (if enabled)
+        'grid.alpha': 0.5,              # Gridline transparency (if enabled)
+        'text.color': 'white',          # Default text color
+    })
+
+    sns.set_context(rc = {'patch.linewidth': 0.0})
+
+
+def tech_color_palette():
+    return {
+        "Generation": "#2e374e",
+        "FossilThermal": "#202020",
+        "Coal": "#322f34",
+        "Subcritical": "#3a3538",
+        "Supercritical": "#4f4444",
+        "Ultrasupercritical": "#5d4e4c",
+        "IGCC": "#6b5853",
+        "Gas": "#bababa",
+        "CCGT": "#999999",
+        "OCGT": "#777777",
+        "Oil": "#5d407c",
+        "Nuclear": "#ee9dda",
+        "Renewables": "#00c0b0",
+        "Firmrenewables": "#b7492d",
+        "Biomass": "#e25329",
+        "Geothermal": "#f75726",
+        "Tidal": "#25367b",
+        "Marine": "#2e4ad9",
+        "Hydro": "#8292e8",
+        "Variablerenewables": "#ffb405",
+        "Solar": "#ffce5d",
+        "Utility": "#ffe19b",
+        "Rooftop": "#fff0cd",
+        "Wind": "#06a299",
+        "Offshore Wind": "#66dad0",
+        "Onshore Wind": "#99e6df",
+        "Innovativethermal": "#fe8348",
+        "CoalCCS": "#b18873",
+        "GasCCS": "#d9d9d9",
+        "BECCS": "#fa9474",
+        "Ammonia": "#d9a88b",
+        "Hydrogen": "#f3f3f3",
+        "Storage": "#69b2f5",
+        "Pumpedhydro": "#a5d1f9",
+        "Battery": "#c3e0fb",
+        "Batteries": "#c3e0fb",
+        "Interconnectors": "#ba63da",
+        "DSR": "#feba9a",
+    }

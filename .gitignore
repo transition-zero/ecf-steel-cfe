@@ -1,4 +1,6 @@
 scrap/*
 *_GITHUB_TOKEN_
-*.ipynb
+*.DS_Store
 __pycache__/
+src/scrap.py
+outputs/*

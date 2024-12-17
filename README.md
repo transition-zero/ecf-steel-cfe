@@ -9,7 +9,6 @@
 
 # System-level impacts of 24/7 Carbon Free Energy (CFE) in Asia
 
-
 <!-- badges-begin -->
 
 ![Python][python badge]
@@ -21,10 +20,10 @@
 <!-- badges-end -->
 
 ## Background
+As climate change intensifies the push for global decarbonization of power systems, many organisations increasingly rely on renewable energy through Power Purchase Agreements (PPAs), which traditionally balance supply and demand over long periods. However, some energy buyers now seek 24/7 carbon-free electricity (also referred to as 24/7 CFE), ensuring every kilowatt-hour is continuously sourced from clean energy. Yet, more modelling studies are needed to explore the feasibility, costs, and impacts of 24/7 CFE at scale in the commercial and industrial (C&I) sector.
 
 ## Our study
-
-### Scope
+The purpose of this project is to study the feasibility, costs, and impacts of 24/7 CFE in the commercial and industrial (C&I) sector in five distinct geographies. These are:
 
 1. India
 2. Japan
@@ -32,8 +31,7 @@
 4. Malaysia
 5. Singapore
 
-### Methodology
-TODO
+Our study employs energy system modelling using the widely adopted [PyPSA](https://github.com/PyPSA/PyPSA) framework. In doing so, we create in almost all cases the first openly available PyPSA models for each of the geographies listed above. In addition, to emphasise transparency and reproducibility, we make our entire workflow accessible on Github, and provide all results, visualizations, and compiled analyses openly.
 
 ## Reproducing this work
 
@@ -49,9 +47,6 @@ TODO
 
 - [Aman Majid](https://www.transitionzero.org/team/aman-majid)
 - [Abhishek Shivakumar](https://www.transitionzero.org/team/abhishek-shivakumar)
-
-### External Advisors
-TODO
 
 ### Want to use, develop or support this project?
 We strongly welcome anyone interested in collaborating on this or future related projects. If you have any ideas, suggestions or encounter problems, feel invited to file issues or make pull requests on GitHub. To discuss ideas for the project, please contact [@Abhishek Shivakumar](mailto:abhishek@transitionzero.org).
