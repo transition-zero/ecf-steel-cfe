@@ -1,0 +1,17 @@
+[project]
+name = "google-cfe"
+version = "0.1.0"
+description = "This project contains all the code necessary to run TransitionZero stock pypsa models with the CFE constraints and technologies."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "gurobipy>=12.0.1",
+    "highspy>=1.9.0",
+    "matplotlib>=3.10.0",
+    "numpy>=1.26.0",
+    "pandas>=2.2.3",
+    "plotly>=6.0.0",
+    "pypsa>=0.32.0",
+    "seaborn>=0.13.2",
+    "tza-pypsa @ git+https://github.com/transition-zero/tza-pypsa.git@v0.0.2",
+]
