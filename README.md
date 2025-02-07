@@ -36,10 +36,56 @@ Our study employs energy system modelling using the widely adopted [PyPSA](https
 ## Reproducing this work
 
 ### Getting started
-TODO
+You can set up the project environment using either `uv` or `mamba`. Following the instructions below to get started. 
+
+Using `uv`:
+
+Create a virtual environment:
+```bash
+uv create .venv
+```
+
+Activate the virtual environment: 
+On macOS/Linux: 
+```bash 
+source .venv/bin/activate
+```
+On Windows 
+```bash 
+.venv\Scripts\activate
+```
+
+Install depedencies: 
+```bash 
+uv add -r pyproject.toml
+```
+
+Using `mamba`: 
+```bash
+mamba env create -f environment.yaml
+```
+
+Activate the environment 
+```bash
+mamba activate tza-cfe
+```
 
 ### Running a scenario
-TODO
+To run a scenario you need to: 
+```bash
+cd run
+```
+if using `uv`:
+```bash 
+uv run run_scenario.py
+```
+
+if using `mamba`: 
+```bash
+python run_scenario.py
+```
+
+You can control which scenarios you want to run using the `configs.yaml` inside the `run` directory.
 
 ## Contributors
 
