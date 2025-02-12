@@ -1,0 +1,15 @@
+name: tza-cfe
+channels:
+  - conda-forge
+  - defaults
+
+dependencies:
+  - "matplotlib>=3.10.0"
+  - "numpy>=2.2.2"
+  - "pandas>=2.2.3"
+  - "plotly>=6.0.0"
+  - "pypsa>=0.32.0"
+  - "seaborn>=0.13.2"
+  - "pip"
+
+pip: "tza-pypsa @ git+https://github.com/transition-zero/tza-pypsa.git"

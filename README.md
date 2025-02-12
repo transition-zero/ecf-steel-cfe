@@ -36,17 +36,56 @@ Our study employs energy system modelling using the widely adopted [PyPSA](https
 ## Reproducing this work
 
 ### Getting started
-TODO
+You can set up the project environment using either `uv` or `mamba`. Following the instructions below to get started. 
+
+Using `uv`:
+
+Create a virtual environment:
+```bash
+uv create .venv
+```
+
+Activate the virtual environment: 
+On macOS/Linux: 
+```bash 
+source .venv/bin/activate
+```
+On Windows 
+```bash 
+.venv\Scripts\activate
+```
+
+Install depedencies: 
+```bash 
+uv add -r pyproject.toml
+```
+
+Using `mamba`: 
+```bash
+mamba env create -f environment.yaml
+```
+
+Activate the environment 
+```bash
+mamba activate tza-cfe
+```
 
 ### Running a scenario
-TODO
+To run a scenario you need to: 
+```bash
+cd run
+```
+if using `uv`:
+```bash 
+uv run run_scenario.py
+```
 
-## Contributors
+if using `mamba`: 
+```bash
+python run_scenario.py
+```
 
-### TransitionZero Team
-
-- [Aman Majid](https://www.transitionzero.org/team/aman-majid)
-- [Abhishek Shivakumar](https://www.transitionzero.org/team/abhishek-shivakumar)
+You can control which scenarios you want to run using the `configs.yaml` inside the `run` directory.
 
 ### Want to use, develop or support this project?
 We strongly welcome anyone interested in collaborating on this or future related projects. If you have any ideas, suggestions or encounter problems, feel invited to file issues or make pull requests on GitHub. To discuss ideas for the project, please contact [@Abhishek Shivakumar](mailto:abhishek@transitionzero.org).
