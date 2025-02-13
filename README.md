@@ -70,19 +70,25 @@ Activate the environment
 mamba activate tza-cfe
 ```
 
-### Running a scenario
-To run a scenario you need to: 
-```bash
-cd run
-```
+### Running CFE models
 if using `uv`:
+- To build brownfield models:
 ```bash 
-uv run run_scenario.py
+uv run python main.py build-brownfield --config configs.yaml
+```
+- To solve the brownfield models:
+```bash 
+uv run python main.py solve-brownfield --config configs.yaml
+```
+- To run the full CFE scenarios:
+```bash 
+uv run python main.py run-full-cfe --config configs.yaml
 ```
 
-if using `mamba`: 
+if using `mamba`:
+The same except ommit `uv run` 
 ```bash
-python run_scenario.py
+python main.py build-brownfield --config configs.yaml
 ```
 
 You can control which scenarios you want to run using the `configs.yaml` inside the `run` directory.
