@@ -4,10 +4,7 @@ import sys
 sys.path.append("../")
 import pypsa
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 
-from matplotlib.ticker import MaxNLocator
 
 from src import brownfield, cfe, helpers, postprocess
 
@@ -114,7 +111,7 @@ def RunBrownfieldSimulation(run, configs):
 
     N_BROWNFIELD.export_to_netcdf(
         os.path.join(
-            configs["paths"]["brownfield_models"],
+            configs["paths"]["output_model_runs"],
             run["name"],
             "solved_networks",
             "brownfield_" + str(configs["global_vars"]["year"]) + ".nc",
