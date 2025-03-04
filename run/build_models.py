@@ -9,7 +9,7 @@ from src import brownfield, helpers
 def build_brownfield_network(run, configs) -> None:
     brownfield_network = brownfield.SetupBrownfieldNetwork(run, configs)
     run_name = run["name"]
-    brownfield_network.export_to_netcdf(f"../networks/brownfield/{run_name}.nc")
+    brownfield_network.export_to_netcdf(f"networks/brownfield/{run_name}.nc")
 
 
 if __name__ == "__main__":
