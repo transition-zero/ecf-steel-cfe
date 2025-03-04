@@ -12,7 +12,7 @@
 paths:
   brownfield_models: "../networks/brownfield/"
   output_model_runs: "../outputs/model_runs/" # path to save model run outputs
-
+  path_to_model: 'tza-pypsa/stock_models/India'
 global_vars:
   year: 2030 # year of the model run
   frequency: 1h # time resolution of the model run (should be 1h for CFE)
@@ -24,23 +24,22 @@ global_vars:
   maximum_excess_export: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid
 
 model_runs:
-  - name: test-for-tech-wizards
+  - name: india-test
     palette: palette_1
-    stock_model: ASEAN
+    stock_model: /home/adminuser/repositories/tza-pypsa/stock_models/India
     select_nodes:
-      - SGPXX
-      - MYSSK
+      - INDNO
+      - INDEA
+      - INDWE
+      - INDSO
+      - INDNE
     nodes_with_ci_load:
-      - SGPXX
+      - INDSO
     cfe_score:
       - 0.6
-      - 0.7
-      - 0.8
-      - 0.9
-      - 1.0
-    ci_load_fraction: 0.2 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+    ci_load_fraction: 0.05 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
     allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
-    backstop: false # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
+    backstop: true # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
 
   # - name: refactor-nov-2024
   #   palette: palette_1
@@ -144,10 +143,9 @@ model_runs:
 technology_palette:
   #### only palette 1 is currently supported
   palette_1:
-    - photovoltaic-unspecified
-    - wind-offshore-unspecified
-    - wind-onshore
-    - battery
+    - 'wind-onshore-INDSO'
+    - 'photovoltaic-unspecified-INDSO'
+    # - 'batteries-INDSO'
   palette_2:
     - photovoltaic-unspecified
     - wind-offshore-unspecified

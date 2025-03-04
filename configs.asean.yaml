@@ -10,21 +10,21 @@
 # -------------------------------------------------------------------------
 
 paths:
-  brownfield_models: "networks/brownfield/"
-  output_model_runs: "outputs/model_runs/" # path to save model run outputs
+ brownfield_models: "networks/brownfield/"
+ output_model_runs: "outputs/model_runs/" # path to save model run outputs
 
 global_vars:
   year: 2030 # year of the model run
   frequency: 1h # time resolution of the model run (should be 1h for CFE)
   timesteps: 8760 # number of timesteps in the model run (e.g., 24 = 1 day)
-  solver: gurobi # solver used to solve the optimization problem
+  solver: highs # solver used to solve the optimization problem
   ci_label: C&I # this is a unique identifier for all CFE attributes in the network
   enable_fossil_charging: false # if true, the model will allow batteries to be charged by fossil fuels
   set_global_constraints: false # if true, the model will set global constraints from tza-pypsa (keep False here)
   maximum_excess_export: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid
 
 model_runs:
-  - name: test-for-tech-wizards
+  - name: ASEAN_full_CFE_highs
     palette: palette_1
     stock_model: ASEAN
     select_nodes:

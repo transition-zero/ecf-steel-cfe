@@ -1,0 +1,170 @@
+# -------------------------------------------------------------------------
+#
+#   CONFIGS
+#   
+#     xxx
+#
+#     Authors:
+#       - @amanmajid
+#
+# -------------------------------------------------------------------------
+
+paths:
+ brownfield_models: "networks/brownfield/"
+ output_model_runs: "outputs/model_runs/" # path to save model run outputs
+ path_to_model: 'tza-pypsa/stock_models/Japan' # load directory of model 
+
+
+  # path_to_model: '/home/dwelsby/repos/tz-pypsa-workspace/tza-pypsa/stock_models/Japan' # load directory of model here
+
+global_vars:
+  year: 2023 # year of the model run
+  frequency: 1h # time resolution of the model run (should be 1h for CFE)
+  timesteps: 8760 # number of timesteps in the model run (e.g., 24 = 1 day)
+  solver: gurobi # solver used to solve the optimization problem
+  ci_label: C&I # this is a unique identifier for all CFE attributes in the network
+  enable_fossil_charging: false # if true, the model will allow batteries to be charged by fossil fuels
+  set_global_constraints: false # if true, the model will set global constraints from tza-pypsa (keep False here)
+  maximum_excess_export: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid
+
+
+model_runs:
+
+  - name: JAPAN_28_02_25_with_cfe_gurobi
+    palette: palette_1
+    stock_model: Japan
+    select_nodes:
+      - JPN01
+    nodes_with_ci_load:
+      - JPN01
+      # - JPN02
+      # - JPN03
+    cfe_score: 
+      - 0.9
+    ci_load_fraction: 0.25 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+    allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
+    backstop: false # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
+
+  # - name: refactor-nov-2024
+  #   palette: palette_1
+  #   stock_model: ASEAN
+  #   select_nodes:
+  #     #### here we can take a subset of nodes from the stock model
+  #     - SGPXX
+  #     - MYSSK
+  #     - MYSPE
+  #     - MYSSH
+  #     # - IDNSM
+  #     # - IDNJW
+  #     # - IDNNU
+  #     # - IDNKA
+  #     # - IDNSL
+  #     # - IDNML
+  #     # - IDNPP
+  #     # - PHLLU
+  #     # - PHLVI
+  #     # - PHLMI
+  #     # - BRNXX
+  #     # - MMRXX
+  #     # - THANO
+  #     # - THASO
+  #     # - THACE
+  #     # - VNMNO
+  #     # - VNMCE
+  #     # - VNMSO
+  #     # - KHMXX
+  #     # - LAOXX
+  #   nodes_with_ci_load:
+  #     #### Define which nodes (buses) we want to have a C&I load with a 24/7 CFE PPA
+  #     #### ((Note: we can only model C&I at one node at a time right now. Multi-node C&I is WIP.))
+  #     - SGPXX
+  #   cfe_score: 
+  #     #### percentage of C&I electricity demand that is met by carbon-free energy PPA (0.10 = 10% CFE matching)
+  #     # - 0.10
+  #     # - 0.15
+  #     # - 0.20
+  #     # - 0.25
+  #     # - 0.30
+  #     # - 0.35
+  #     # - 0.40
+  #     # - 0.45
+  #     # - 0.50
+  #     # - 0.55
+  #     - 0.60
+  #     # - 0.65
+  #     - 0.70
+  #     # - 0.75
+  #     - 0.80
+  #     # - 0.85
+  #     - 0.90
+  #     # - 0.95
+  #     # - 0.96
+  #     # - 0.97
+  #     # - 0.98
+  #     # - 0.99
+  #     - 1.00
+  #   ci_load_fraction: 0.2 # percentage of bus-level demand is attributed to C&I (e.g., 0.2 = 20% of bus demand is C&I)
+  #   allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
+  #   backstop: false # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
+
+  
+  # - name: prelim-run-MYS-oct-2024
+  #   palette: palette_1
+  #   stock_model: ASEAN
+  #   select_nodes:
+  #     - MYSSK
+  #   nodes_with_ci_load:
+  #     - MYSSK
+  #   ci_load_fraction: 0.2 # percentage of nodal demand is attributed to C&I
+  #   cfe_score: 
+  #     # percentage of C&I electricity demand that is met by carbon-free energy PPA
+  #     # 0.10 = 10% CFE matching
+  #     # - 0.10
+  #     # - 0.15
+  #     # - 0.20
+  #     # - 0.25
+  #     # - 0.30
+  #     # - 0.35
+  #     # - 0.40
+  #     # - 0.45
+  #     # - 0.50
+  #     # - 0.55
+  #     - 0.60
+  #     - 0.65
+  #     - 0.70
+  #     - 0.75
+  #     - 0.80
+  #     - 0.85
+  #     - 0.90
+  #     - 0.95
+  #     - 0.96
+  #     - 0.97
+  #     - 0.98
+  #     - 0.99
+  #     - 1.00
+  #   allow_grid_expansion: false
+  #   backstop: false
+
+
+technology_palette:
+  #### only palette 1 is currently supported
+  palette_1:
+    - JPN01-Solar
+    - JPN01-Wind
+    - Batteries # carrier name rather than generator name to get picked up in cfe scripts
+    - JPN01-Gas-Hydrogen-Cofiring-Unit1
+  # palette_2:
+  #   - photovoltaic-unspecified
+  #   - wind-offshore-unspecified
+  #   - wind-onshore
+  #   - hydro-unspecified
+  #   - bioenergy-unspecified
+  #   - battery
+  # palette_3:
+  #   - photovoltaic-unspecified
+  #   - wind-offshore-unspecified
+  #   - wind-onshore
+  #   - hydro-unspecified
+  #   - bioenergy-unspecified
+  #   - battery
+  #   - hydrogen???
