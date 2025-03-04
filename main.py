@@ -1,11 +1,11 @@
 import click
 import os
-from src import brownfield, helpers, postprocess
+from src import brownfield, helpers, postprocess, cfe
 from run.run_scenarios import RunBrownfieldSimulation, RunCFE
 import pypsa
 
 
-def build_brownfield_network(run, configs) -> None:
+def build_brownfield_network(run, configs,with_cfe:bool) -> None:
     """
     Builds and exports a brownfield network based on the provided run configuration.
     Args:
@@ -22,7 +22,7 @@ def build_brownfield_network(run, configs) -> None:
     brownfield_network.export_to_netcdf(os.path.join(output_dir, f"{run_name}.nc"))
 
 
-def solve_brownfield_network(run, configs) -> pypsa.Network:
+def solve_brownfield_network(run, configs, with_cfe:bool) -> pypsa.Network:
     """
     Sets up and optimizes a brownfield network.
     Parameters:
@@ -32,13 +32,28 @@ def solve_brownfield_network(run, configs) -> pypsa.Network:
     pypsa.Network: The optimized brownfield network.
     """
 
-    brownfield_network = brownfield.SetupBrownfieldNetwork(run, configs)
-    brownfield_network.optimize()
-    return brownfield_network
+    tza_brownfield_network = brownfield.SetupBrownfieldNetwork(run, configs)
+    if with_cfe:
+                final_brownfield = cfe.PrepareNetworkForCFE(
+        tza_brownfield_network,
+        buses_with_ci_load=run["nodes_with_ci_load"],
+        ci_load_fraction=run["ci_load_fraction"],
+        technology_palette=configs["technology_palette"][run["palette"]],
+        p_nom_extendable=False,
+    )
+    else:
+        final_brownfield = tza_brownfield_network
+    final_brownfield.optimize(solver_name=configs["global_vars"]["solver"])
+    return final_brownfield
 
 
 def run_scenarios(configs):
     for run in configs["model_runs"]:
+        helpers.setup_dir(
+            path_to_dir=configs["paths"]["output_model_runs"]
+            + run["name"]
+            + "/solved_networks/"
+        )
         print(f"Running: {run['name']}")
         ci_identifier = configs["global_vars"]["ci_label"]
         N_BROWNFIELD = RunBrownfieldSimulation(run, configs)
@@ -59,7 +74,8 @@ def cli():
 
 @cli.command()
 @click.option("--config", default="configs.yaml", help="Path to the configuration file")
-def build_brownfield(config):
+@click.option("--with_cfe", default=False, help="Include CFE components in the model")
+def build_brownfield(config, with_cfe:bool):
     """
     Builds brownfield models based on the provided configuration.
     This function loads the configuration settings, sets up the necessary directories,
@@ -78,9 +94,33 @@ def build_brownfield(config):
 
 @cli.command()
 @click.option("--config", default="configs.yaml", help="Path to the configuration file")
-def solve_brownfield(config):
+@click.option("--with-cfe", default=True, help="Include CFE components in the model")
+def solve_brownfield(config,with_cfe:bool):
     """
     Solves the brownfield network problem based on the provided configuration.
+    Args:
+        config (str): Path to the configuration file.
+    Returns:
+        None
+    """
+
+    configs = helpers.load_configs(config)
+    for run in configs["model_runs"]:
+        run_name = run["name"]
+        output_dir = os.path.join(configs["paths"]["output_model_runs"])
+        os.makedirs(output_dir, exist_ok=True)
+        solved_brownfield_network = solve_brownfield_network(run, configs,with_cfe)
+        solved_brownfield_network.export_to_netcdf(
+            os.path.join(output_dir, f"{run_name}.nc")
+        )
+        print(os.path.join(output_dir, f"{run_name}.nc"))
+
+
+@cli.command()
+@click.option("--config", default="configs.yaml", help="Path to the configuration file")
+def solve_brownfield_cfe(config):
+    """
+    Solves the brownfield network problem based on the provided configuration with the added CFE components.
     Args:
         config (str): Path to the configuration file.
     Returns:
@@ -97,7 +137,6 @@ def solve_brownfield(config):
             os.path.join(output_dir, f"{run_name}.nc")
         )
         print(os.path.join(output_dir, f"{run_name}.nc"))
-
 
 @cli.command()
 @click.option("--config", default="configs.yaml", help="Path to the configuration file")
