@@ -1,7 +1,7 @@
 import os
 import sys
 
-sys.path.append("../")
+
 import pypsa
 import pandas as pd
 
@@ -103,19 +103,19 @@ def RunBrownfieldSimulation(run, configs):
 
     print("prepared network for CFE")
     print("Begin solving...")
-    solver_options = {"Method": "barrier", "Presolve": 2, "Threads": 4, "Cores": 2}
-
+    # solver_options = {"Method": "barrier", "Presolve": 2, "Threads": 4, "Cores": 2}
     N_BROWNFIELD.optimize(
-    solver_name=configs["global_vars"]["solver"], solver_options=solver_options
+    solver_name=configs["global_vars"]["solver"]
 )
-
-    N_BROWNFIELD.export_to_netcdf(
-    os.path.join(
+    brownfield_path =  os.path.join(
         configs["paths"]["output_model_runs"],
         run["name"],
         "solved_networks",
         "brownfield_" + str(configs["global_vars"]["year"]) + ".nc",
     )
+    print(brownfield_path)
+    N_BROWNFIELD.export_to_netcdf(brownfield_path
+   
 )
 
 
@@ -201,7 +201,6 @@ def RunRES100(
             CI_GridExport.sum()
             <= CI_Demand * configs["global_vars"]["maximum_excess_export"],
         )
-
     N_RES_100.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
 
     N_RES_100.export_to_netcdf(
@@ -290,6 +289,7 @@ def RunCFE(N_BROWNFIELD: pypsa.Network, CFE_Score,ci_identifier: str,run:dict,co
             CFE_Score,
             configs["global_vars"]["maximum_excess_export"],
         )
+    
         N_CFE.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
         GridCFE = GetGridCFE(N_CFE, ci_identifier)
         count += 1
