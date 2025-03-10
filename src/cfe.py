@@ -165,7 +165,8 @@ def PrepareNetworkForCFE(
                 )
 
                 # get capacity factors if technology is renewable
-                cf = network.generators_t.p_max_pu.filter(regex = bus + '-' + technology)
+                generator_names = network.generators[network.generators.type == technology].index
+                cf = network.generators_t.p_max_pu[generator_names]
                 if cf.empty:
                     cf = params['p_max_pu']
                 else:
@@ -323,7 +324,7 @@ def apply_cfe_constraint(
         n.model.add_constraints(
             CI_Demand == CI_PPA - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge
         )
-
+        
         # Constraint 2: CFE target
         # ---------------------------------------------------------------
         n.model.add_constraints(

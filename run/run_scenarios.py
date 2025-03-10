@@ -1,13 +1,8 @@
 import os
 import sys
 
-sys.path.append("../")
-import pypsa
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
-
-from matplotlib.ticker import MaxNLocator
+import pypsa
 
 from src import brownfield, cfe, helpers, postprocess
 
@@ -74,7 +69,7 @@ def GetGridCFE(
     return (total_clean_generation / total_generation).round(2).tolist()
 
 
-def PostProcessBrownfield(n: pypsa.Network):
+def PostProcessBrownfield(n: pypsa.Network, ci_identifier: str):
     """
     This function post-processes the brownfield network to make it ready for the CFE and RES100 simulations.
     The logic is that we fix all optimised capacities in 2030 (brownfield) and only allow the C&I assets to be extendable,
@@ -107,25 +102,26 @@ def RunBrownfieldSimulation(run, configs):
 
     print("prepared network for CFE")
     print("Begin solving...")
-    solver_options = {"Method": "barrier", "Presolve": 2, "Threads": 4, "Cores": 2}
-    N_BROWNFIELD.optimize(
-        solver_name=configs["global_vars"]["solver"], solver_options=solver_options
+    # solver_options = {"Method": "barrier", "Presolve": 2, "Threads": 4, "Cores": 2}
+    N_BROWNFIELD.optimize(solver_name=configs["global_vars"]["solver"])
+    brownfield_path = os.path.join(
+        configs["paths"]["output_model_runs"],
+        run["name"],
+        "solved_networks",
+        "brownfield_" + str(configs["global_vars"]["year"]) + ".nc",
     )
-
-    N_BROWNFIELD.export_to_netcdf(
-        os.path.join(
-            configs["paths"]["output_model_runs"],
-            run["name"],
-            "solved_networks",
-            "brownfield_" + str(configs["global_vars"]["year"]) + ".nc",
-        )
-    )
+    print(brownfield_path)
+    N_BROWNFIELD.export_to_netcdf(brownfield_path)
 
     return N_BROWNFIELD
 
 
 def RunRES100(
     N_BROWNFIELD: pypsa.Network,
+    ci_identifier: str,
+    run: dict,
+    configs: dict,
+    res_target: int = 100,
     # bus : str,
 ):
     """Sets up the 100% RES (annual matching) simulation"""
@@ -134,7 +130,7 @@ def RunRES100(
     N_RES_100 = N_BROWNFIELD  # .copy()
 
     # post-process to set what is expandable and non-expandable
-    N_RES_100 = PostProcessBrownfield(N_RES_100)
+    N_RES_100 = PostProcessBrownfield(N_RES_100, ci_identifier=ci_identifier)
 
     # init linopy model
     N_RES_100.optimize.create_model()
@@ -193,8 +189,8 @@ def RunRES100(
         # Constraint 1: Annual matching
         # ---------------------------------------------------------------
         N_RES_100.model.add_constraints(
-            CI_PPA >= (RES_TARGET / 100) * CI_Demand,
-            name=f"{RES_TARGET}_RES_constraint_{bus}",
+            CI_PPA >= (res_target / 100) * CI_Demand,
+            name=f"{res_target}_RES_constraint_{bus}",
         )
 
         # Constraint 2: Excess (export from C&I system to grid)
@@ -203,7 +199,6 @@ def RunRES100(
             CI_GridExport.sum()
             <= CI_Demand * configs["global_vars"]["maximum_excess_export"],
         )
-
     N_RES_100.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
 
     N_RES_100.export_to_netcdf(
@@ -213,7 +208,7 @@ def RunRES100(
             "solved_networks",
             "annual_matching_"
             + "RES"
-            + str(RES_TARGET)
+            + str(res_target)
             + "_"
             + str(configs["global_vars"]["year"])
             + ".nc",
@@ -223,11 +218,13 @@ def RunRES100(
     return N_RES_100
 
 
-def RunCFE(N_BROWNFIELD: pypsa.Network, CFE_Score):
+def RunCFE(
+    N_BROWNFIELD: pypsa.Network, CFE_Score, ci_identifier: str, run: dict, configs: dict
+):
     """Run 24/7 CFE scenario"""
 
     N_CFE = N_BROWNFIELD  # .copy()
-    N_CFE = PostProcessBrownfield(N_CFE)
+    N_CFE = PostProcessBrownfield(N_CFE, ci_identifier=ci_identifier)
 
     # init linopy model
     N_CFE.optimize.create_model()
@@ -292,6 +289,7 @@ def RunCFE(N_BROWNFIELD: pypsa.Network, CFE_Score):
             CFE_Score,
             configs["global_vars"]["maximum_excess_export"],
         )
+
         N_CFE.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
         GridCFE = GetGridCFE(N_CFE, ci_identifier)
         count += 1
@@ -362,12 +360,12 @@ if __name__ == "__main__":
         # 100% RES SIMULATION
         RES_TARGET = 100
         print(f"Computing annual matching scenario (RES Target: {int(RES_TARGET)}%)...")
-        RunRES100(N_BROWNFIELD)
+        RunRES100(N_BROWNFIELD, ci_identifier=ci_identifier)
 
         # Compute hourly matching scenarios
         for CFE_Score in run["cfe_score"]:
             print(f"Computing hourly matching scenario (CFE: {int(CFE_Score*100)}...")
-            RunCFE(N_BROWNFIELD, CFE_Score=CFE_Score)
+            RunCFE(N_BROWNFIELD, CFE_Score=CFE_Score, ci_identifier=ci_identifier)
 
     # ----------------------------------------------------------------------
     # MAKE PLOTS FOR EACH SCENARIO

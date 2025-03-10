@@ -1,7 +1,7 @@
 # -------------------------------------------------------------------------
 #
 #   CONFIGS
-#   
+#
 #     xxx
 #
 #     Authors:
@@ -10,37 +10,38 @@
 # -------------------------------------------------------------------------
 
 paths:
-  output_model_runs: '../outputs/model_runs/' # path to save model run outputs
-
-
+  brownfield_models: "networks/brownfield/"
+  output_model_runs: "outputs/model_runs/" # path to save model run outputs
+  path_to_model: 'tza-pypsa/stock_models/India'
 global_vars:
-  year: 2030 # year of the model run
+  year: 2023 # year of the model run
   frequency: 1h # time resolution of the model run (should be 1h for CFE)
   timesteps: 8760 # number of timesteps in the model run (e.g., 24 = 1 day)
-  solver: gurobi # solver used to solve the optimization problem
+  solver: highs # solver used to solve the optimization problem
   ci_label: C&I # this is a unique identifier for all CFE attributes in the network
   enable_fossil_charging: false # if true, the model will allow batteries to be charged by fossil fuels
   set_global_constraints: false # if true, the model will set global constraints from tza-pypsa (keep False here)
   maximum_excess_export: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid
 
-
 model_runs:
-
-  - name: test-for-tech-wizards
+  - name: india-test-full-cfe
     palette: palette_1
-    stock_model: ASEAN
+    stock_model: 'tza-pypsa/stock_models/India'
     select_nodes:
-      - SGPXX
-      - MYSSK
+      - INDNO
+      - INDEA
+      - INDWE
+      - INDSO
+      - INDNE
     nodes_with_ci_load:
-      - SGPXX
-    cfe_score: 
+      - INDSO
+    cfe_score:
       - 0.6
       - 0.7
       - 0.8
       - 0.9
       - 1.0
-    ci_load_fraction: 0.2 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+    ci_load_fraction: 0.05 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
     allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
     backstop: false # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
 
@@ -77,7 +78,7 @@ model_runs:
   #     #### Define which nodes (buses) we want to have a C&I load with a 24/7 CFE PPA
   #     #### ((Note: we can only model C&I at one node at a time right now. Multi-node C&I is WIP.))
   #     - SGPXX
-  #   cfe_score: 
+  #   cfe_score:
   #     #### percentage of C&I electricity demand that is met by carbon-free energy PPA (0.10 = 10% CFE matching)
   #     # - 0.10
   #     # - 0.15
@@ -106,7 +107,6 @@ model_runs:
   #   allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
   #   backstop: false # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
 
-  
   # - name: prelim-run-MYS-oct-2024
   #   palette: palette_1
   #   stock_model: ASEAN
@@ -115,7 +115,7 @@ model_runs:
   #   nodes_with_ci_load:
   #     - MYSSK
   #   ci_load_fraction: 0.2 # percentage of nodal demand is attributed to C&I
-  #   cfe_score: 
+  #   cfe_score:
   #     # percentage of C&I electricity demand that is met by carbon-free energy PPA
   #     # 0.10 = 10% CFE matching
   #     # - 0.10
@@ -144,14 +144,12 @@ model_runs:
   #   allow_grid_expansion: false
   #   backstop: false
 
-
 technology_palette:
   #### only palette 1 is currently supported
   palette_1:
-    - photovoltaic-unspecified
-    - wind-offshore-unspecified
-    - wind-onshore
-    - battery
+    - 'wind-onshore'
+    - 'photovoltaic-unspecified'
+    # - batteries
   palette_2:
     - photovoltaic-unspecified
     - wind-offshore-unspecified
