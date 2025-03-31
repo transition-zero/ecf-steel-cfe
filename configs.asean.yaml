@@ -14,7 +14,7 @@ paths:
  output_model_runs: "outputs/model_runs/" # path to save model run outputs
 
 global_vars:
-  year: 2030 # year of the model run
+  years: 2030 # year of the model run
   frequency: 1h # time resolution of the model run (should be 1h for CFE)
   timesteps: 8760 # number of timesteps in the model run (e.g., 24 = 1 day)
   solver: highs # solver used to solve the optimization problem
@@ -24,22 +24,47 @@ global_vars:
   maximum_excess_export: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid
 
 model_runs:
-  - name: ASEAN_full_CFE_highs
+  - name: trial_run_SGPXX_27Mar_brownfield
     palette: palette_1
     stock_model: ASEAN
     select_nodes:
       - SGPXX
+      - MYSPE
       - MYSSK
+      - MYSSH
+      - IDNKA
+      - THASO
+      - THACE
+      - THANO
     nodes_with_ci_load:
-      - SGPXX
+      - SGPXX # Ci_load_fraction: 0.31, voluntary involvement on CFE: 0.08
     cfe_score:
-      - 0.6
-      - 0.7
-      - 0.8
-      - 0.9
-      - 1.0
-    ci_load_fraction: 0.2 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+      # - 0.10
+      # - 0.15
+      # - 0.20
+      # - 0.25
+      # - 0.30
+      # - 0.35
+      # - 0.40
+      # - 0.45
+      # - 0.50
+      # - 0.55
+      - 0.60
+      # - 0.65
+      - 0.70
+      # - 0.75
+      - 0.80
+      # - 0.85
+      - 0.90
+      - 0.95
+      # - 0.96
+      # - 0.97
+      # - 0.98
+      # - 0.99
+      - 1.00
+    ci_load_fraction: 0.08 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
     allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
+    # allow_pumped_hydro_expansion: false # if true, the model will allow pumped hydro expansion
     backstop: false # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
 
   # - name: refactor-nov-2024
