@@ -4,6 +4,12 @@ import sys
 import pandas as pd
 import pypsa
 
+from tz_pypsa.constraints import (
+    constr_cumulative_p_nom,
+    constr_bus_self_sufficiency,
+    constr_policy_targets
+)
+
 from src import brownfield, cfe, helpers, postprocess
 
 
@@ -89,7 +95,9 @@ def PostProcessBrownfield(n: pypsa.Network, ci_identifier: str):
 
 
 def RunBrownfieldSimulation(run, configs):
+
     """Setup and run the brownfield simulation"""
+
     N_BROWNFIELD = brownfield.SetupBrownfieldNetwork(run, configs)
 
     N_BROWNFIELD = cfe.PrepareNetworkForCFE(
@@ -104,12 +112,33 @@ def RunBrownfieldSimulation(run, configs):
     print("Begin solving...")
     # solver_options = {"Method": "barrier", "Presolve": 2, "Threads": 4, "Cores": 2}
     N_BROWNFIELD.optimize(solver_name=configs["global_vars"]["solver"])
+
+    lp_model = N_BROWNFIELD.optimize.create_model()
+
+    # -------------------------------------------------------
+    # CUMULATIVE P_NOM_MAX CONSTRAINT
+    # -------------------------------------------------------
+    constr_cumulative_p_nom(N_BROWNFIELD, lp_model)
+
+    # -------------------------------------------------------
+    # BUS SELF SUFFICIENCY CONSTRAINT
+    # -------------------------------------------------------
+    constr_bus_self_sufficiency(N_BROWNFIELD, lp_model, min_self_sufficiency = 0.6)
+
+    # -------------------------------------------------------
+    # CONSTRAINTS FROM TARGETS AND POLICIES SHEET
+    # -------------------------------------------------------
+    constr_policy_targets(N_BROWNFIELD, lp_model, stock_model = 'ASEAN')
+
+    N_BROWNFIELD.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
+
     brownfield_path = os.path.join(
         configs["paths"]["output_model_runs"],
         run["name"],
         "solved_networks",
         "brownfield_" + str(configs["global_vars"]["year"]) + ".nc",
     )
+
     print(brownfield_path)
     N_BROWNFIELD.export_to_netcdf(brownfield_path)
 
