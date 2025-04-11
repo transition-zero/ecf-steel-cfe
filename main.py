@@ -3,6 +3,11 @@ import os
 import click
 import pypsa
 
+
+from tz_pypsa.constraints import (
+    constr_bus_self_sufficiency
+)
+
 from run.run_scenarios import RunBrownfieldSimulation, RunCFE, RunRES100
 from src import brownfield, cfe, helpers, postprocess
 
@@ -45,6 +50,22 @@ def solve_brownfield_network(run, configs, with_cfe: bool) -> pypsa.Network:
         )
     else:
         final_brownfield = tza_brownfield_network
+
+    # constraints will go here. These include:
+    # - policy constraints
+    # - max utilisation constraints
+    # - min utilisation constraints
+    # - bus self sufficency constraints
+    # - blending constraints
+
+    # most sensible thing is probably to just test one constraint for now,
+    # making sure that arguments are passed correctly
+
+    # BUS SELF SUFFICIENCY CONSTRAINT
+    if configs["constraints"]["bus_self_sufficiency"]:   
+        constr_bus_self_sufficiency(final_brownfield, 
+                                    min_self_sufficiency = configs["constraints"]["bus_self_sufficiency_fraction"])
+    
     final_brownfield.optimize(solver_name=configs["global_vars"]["solver"])
     return final_brownfield
 

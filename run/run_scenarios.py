@@ -267,6 +267,9 @@ def RunCFE(
         configs["global_vars"]["maximum_excess_export"],
     )
 
+    # other brownfield constraints also need to be applied here
+    # in the same way that CFE constraints are applied
+
     # optimise
     N_CFE.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
 
