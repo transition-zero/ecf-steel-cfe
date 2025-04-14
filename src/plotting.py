@@ -7,11 +7,11 @@ import matplotlib.gridspec as gridspec
 from . import get as cget
 from . import plotting as cplt
 
-def plot_cfe_hmap(n, ymax, ci_identifier='C&I'):
+def plot_cfe_hmap(n, n_reference, ymax, ci_identifier='C&I'):
     '''Plot the CFE score as a heatmap
     '''
     cfe_t = cget.get_cfe_score_ts(n, ci_identifier)
-    cfe_t.index = cfe_t.index.tz_localize('UTC').tz_convert('Asia/Singapore')
+    cfe_t.index = cfe_t.index #.tz_localize('UTC').tz_convert('Asia/Singapore')
     cfe_t['Hour'] = cfe_t.index.hour + 1
     cfe_t['Day'] = cfe_t.index.day
     cfe_t['Month'] = cfe_t.index.month
@@ -23,16 +23,16 @@ def plot_cfe_hmap(n, ymax, ci_identifier='C&I'):
 
     # total system cost
     cmap_dict = cplt.tech_color_palette()
-    fields_to_plot = ['Battery', 'Solar', 'Wind']
+    fields_to_plot = ['Battery', 'Solar', 'Onshore Wind']
 
     cost = (
         cget
-        .get_total_annual_system_cost(n)
+        .get_total_ci_procurement_cost(n, n_reference)
         .pivot_table(
             columns='carrier', 
             values='annual_system_cost [M$]'
         )
-        .drop([i for i in cget.get_total_annual_system_cost(n).carrier.unique() if i not in fields_to_plot], axis=1)
+        .drop([i for i in cget.get_total_ci_procurement_cost(n, n_reference).carrier.unique() if i not in fields_to_plot], axis=1)
         .div(1e3)
     )
 
@@ -139,21 +139,21 @@ def set_tz_theme():
     '''
 
     plt.rcParams.update({
-        'figure.facecolor': '#1F283D',  # Background color of the entire figure (outer area)
-        'axes.facecolor': '#1F283D',    # Background color of the plot (inside axes)
-        'axes.edgecolor': 'white',      # Color of the axes/box edges
-        'axes.labelcolor': 'white',     # Color of the axis labels
-        'xtick.color': 'white',         # Color of the x-tick labels
-        'ytick.color': 'white',         # Color of the y-tick labels
+        'figure.facecolor': 'white',    # Background color of the entire figure (outer area)
+        'axes.facecolor': 'white',      # Background color of the plot (inside axes)
+        'axes.edgecolor': 'black',      # Color of the axes/box edges
+        'axes.labelcolor': 'black',     # Color of the axis labels
+        'xtick.color': 'black',         # Color of the x-tick labels
+        'ytick.color': 'black',         # Color of the y-tick labels
         'axes.spines.top': False,       # Remove the top spine (optional)
         'axes.spines.right': False,     # Remove the right spine (optional)
-        'font.family': 'Arial',         # Font family set to Arial
+        # 'font.family': 'Work Sans',     # Font family set to Work Sans (TZ brand font)
         'axes.prop_cycle': plt.cycler(color=['#00C0B0', '#FE8348', '#008DCE', '#FFB405']),  # Custom color cycle
-        'grid.color': 'white',          # Gridline color (if enabled)
+        'grid.color': 'black',          # Gridline color (if enabled)
         'grid.linestyle': ':',          # Gridline style (if enabled)
         'grid.linewidth': 0.5,          # Gridline width (if enabled)
         'grid.alpha': 0.5,              # Gridline transparency (if enabled)
-        'text.color': 'white',          # Default text color
+        'text.color': 'black',          # Default text color
     })
 
     sns.set_context(rc = {'patch.linewidth': 0.0})

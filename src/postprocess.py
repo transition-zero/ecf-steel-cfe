@@ -31,6 +31,9 @@ def plot_results(path_to_run_dir: str):
         )
     )
 
+    # load list of C&I carriers to be plot
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+    
     # ------------------------------------------------------------------
     # C&I Portfolio Capacity [GW]
 
@@ -52,6 +55,7 @@ def plot_results(path_to_run_dir: str):
             'name',
         )
         .drop('name', axis=1)
+        .query("capacity != 0")
     )
 
     # pull out relevant data
@@ -102,6 +106,89 @@ def plot_results(path_to_run_dir: str):
         ),
         bbox_inches='tight'
     )
+
+    # ------------------------------------------------------------------
+    # C&I Portfolio Procurement cost [currency/GW]
+
+    fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[1,10], figsize=(10,4))
+
+    ci_procurement_cost = (
+        pd.concat(
+            [
+                cget.get_total_ci_procurement_cost(
+                    solved_networks[k],
+                    solved_networks['n_bf']
+                )
+                # for k, n in solved_networks.items()
+                # solved_networks[k]
+                # .statistics.expanded_capacity()
+                # .reset_index()
+                # .rename(columns={0:'capacity'})
+                .assign(name=k)
+                for k, n in solved_networks.items()
+            ]
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name',
+        )
+        .drop('name', axis=1)
+        # .query("capacity != 0")
+    )
+
+    # pull out relevant data
+    res_ci_costs = (
+        ci_procurement_cost
+        .loc[ci_procurement_cost['Scenario'] == '100% RES']
+        .drop(['Scenario','CFE Score'], axis=1)
+        .query(" ~carrier.isin(['Transmission']) ")
+        .query("carrier in @ci_carriers")
+        .pivot_table(columns='carrier', values='annual_system_cost [M$]')
+        .div(1e3)
+        .rename(index={'annual_system_cost [M$]':'100% RES'})
+    )
+
+    cfe_ci_costs = (
+        ci_procurement_cost
+        .query("Scenario.str.contains('CFE')")
+        .sort_values('CFE Score')
+        .query(" ~carrier.isin(['Transmission']) ")
+        .query("carrier in @ci_carriers")
+        .pivot_table(index='CFE Score', columns='carrier', values='annual_system_cost [M$]')
+        .div(1e3)
+    )
+    print(res_ci_costs)
+
+    colors = cplt.tech_color_palette()
+
+    res_ci_costs.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res_ci_costs.columns])
+    cfe_ci_costs.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in cfe_ci_costs.columns])
+
+    ax0.set_ylabel('C&I procured portfolio cost [billion $/GW]')
+    ax1.set_xlabel('CFE Score [%]')
+
+    for ax in [ax0, ax1]:
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        sns.despine(ax=ax, left=False)
+
+    # Remove legend title and box
+    legend = ax1.legend()
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Adjust horizontal space between ax0 and ax1
+    fig.subplots_adjust(wspace=0.1)
+
+    # save
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/ci_capacity_costs_by_scenario.png'
+        ),
+        bbox_inches='tight'
+    )
+    
+
 
     # ------------------------------------------------------------------
     # EMISSIONS
@@ -614,13 +701,14 @@ def plot_results(path_to_run_dir: str):
 
     # ------------------------------------------------------------------
     # HEATMAP OF CFE SCORE
-    fields_to_plot = ['Battery', 'Solar', 'Wind']
-    ymax = cget.get_total_annual_system_cost(solved_networks['n_hm_CFE100_2030']).query("carrier.isin(@fields_to_plot)")['annual_system_cost [M$]'].sum() / 1e3
+    fields_to_plot = ['Battery', 'Solar', 'Onshore Wind']
+    ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030'],solved_networks['n_bf']).query("carrier.isin(@fields_to_plot)")['annual_system_cost [M$]'].sum() / 1e3
     for k in solved_networks.keys():
-        # get network
+        # get networks
+        n_reference = solved_networks['n_bf'].copy()
         n = solved_networks[k].copy()
         # init fig
-        fig, ax0, ax1 = cplt.plot_cfe_hmap(n, ymax=ymax, ci_identifier='C&I')
+        fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, ci_identifier='C&I')
 
         # set fname
         if 'n_bf' in k:

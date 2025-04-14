@@ -158,6 +158,23 @@ def get_unit_cost(n : pypsa.Network) -> pd.DataFrame:
     )
 
 
+def get_total_ci_procurement_cost(n : pypsa.Network, n_reference: pypsa.Network) -> pd.DataFrame:
+    '''Returns the total annual system cost in M$ for each C&I procured component and carrier
+    '''
+    return (
+        (
+            n.statistics()['Capital Expenditure'] 
+            + n.statistics()['Operational Expenditure']
+            - n_reference.statistics()['Capital Expenditure']
+            - n_reference.statistics()['Operational Expenditure']
+        )
+        .div(1e6)
+        .round(2)
+        .reset_index()
+        .rename(columns={'level_0' : 'component','level_1' : 'carrier', 0: 'annual_system_cost [M$]'})
+    )
+
+
 def get_total_annual_system_cost(n : pypsa.Network) -> pd.DataFrame:
     '''Returns the total annual system cost in M$ for each component and carrier
     '''
@@ -208,3 +225,12 @@ def split_scenario_col(df : pd.DataFrame, col_name: str):
     df.loc[ df[col_name].str.contains('n_hm'), 'Scenario' ] = df.query(f"{col_name}.str.contains('CFE')")[col_name].str.split('_', expand=True)[2].str.replace('CFE','CFE-')
     df.loc[ df.Scenario.str.contains('CFE'), 'CFE Score'] = df.loc[ df.Scenario.str.contains('CFE'), 'Scenario'].str.replace('CFE-','').astype(int)
     return df
+
+
+def get_ci_carriers(n: pypsa.Network) -> pd.DataFrame:
+    '''Returns the C&I carriers
+    '''
+    ci_carriers = list(n.generators[n.generators.index.str.contains('C&I')].carrier.unique()) + \
+              list(n.storage_units[n.storage_units.index.str.contains('C&I')].carrier.unique())
+
+    return (n.carriers.loc[ci_carriers, 'nice_name'])
