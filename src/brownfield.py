@@ -49,7 +49,9 @@ def SetupBrownfieldNetwork(run, configs) -> pypsa.Network:
 
     # ensure p_nom is extendable in the brownfield network
     network.generators['p_nom_extendable']      = True
-    network.storage_units['p_nom_extendable']   = True
+    # network.storage_units['p_nom_extendable']   = True
+    network.storage_units.p_nom_extendable.loc[network.storage_units.index.str.contains('lithium')] = True
+    network.storage_units.p_nom_extendable.loc[network.storage_units.index.str.contains('pumped')] = False
     network.links['p_nom_extendable']           = run['allow_grid_expansion']
 
     # set p_nom_min to prevent early decommissioning of assets
