@@ -97,8 +97,9 @@ def run_scenarios(configs):
         )
         for CFE_Score in run["cfe_score"]:
             print(f"Computing hourly matching scenario (CFE: {int(CFE_Score*100)}...")
+            N_BROWNFIELD_original = helpers.load_brownfield_network(run, configs)
             RunCFE(
-                N_BROWNFIELD,
+                N_BROWNFIELD_original,
                 CFE_Score=CFE_Score,
                 ci_identifier=ci_identifier,
                 run=run,

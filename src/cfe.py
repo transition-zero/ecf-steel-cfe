@@ -164,8 +164,10 @@ def PrepareNetworkForCFE(
                     .to_dict()
                 )
 
-                # get capacity factors if technology is renewable
-                generator_names = network.generators[network.generators.type == technology].index
+                # get capacity factors if technology is renewable, ensuring correct technology and bus is used
+                generator_names = network.generators.index[
+                    (network.generators["type"] == technology) & (network.generators["bus"] == bus)
+                ]
                 cf = network.generators_t.p_max_pu[generator_names]
                 if cf.empty:
                     cf = params['p_max_pu']

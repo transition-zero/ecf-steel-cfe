@@ -251,8 +251,7 @@ def RunCFE(
 ):
     """Run 24/7 CFE scenario"""
 
-    N_CFE = N_BROWNFIELD  # .copy()
-    N_CFE = PostProcessBrownfield(N_CFE, ci_identifier=ci_identifier)
+    N_CFE = PostProcessBrownfield(N_BROWNFIELD, ci_identifier=ci_identifier)
 
     # init linopy model
     N_CFE.optimize.create_model()
