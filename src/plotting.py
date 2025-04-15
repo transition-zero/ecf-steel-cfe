@@ -3,6 +3,7 @@ import seaborn as sns
 import plotly.express as px
 import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.font_manager as fm
 
 from . import get as cget
 from . import plotting as cplt
@@ -10,6 +11,13 @@ from . import plotting as cplt
 def plot_cfe_hmap(n, n_reference, ymax, ci_identifier='C&I'):
     '''Plot the CFE score as a heatmap
     '''
+
+    # Add Work Sans font to matplotlib
+    work_sans_path_light = './assets/WorkSans-Light.ttf'
+    work_sans_path_medium = './assets/WorkSans-Medium.ttf'
+    work_sans_font = fm.FontProperties(fname=work_sans_path_light)
+    work_sans_font_medium = fm.FontProperties(fname=work_sans_path_medium)
+
     cfe_t = cget.get_cfe_score_ts(n, ci_identifier)
     cfe_t.index = cfe_t.index #.tz_localize('UTC').tz_convert('Asia/Singapore')
     cfe_t['Hour'] = cfe_t.index.hour + 1
@@ -46,8 +54,8 @@ def plot_cfe_hmap(n, n_reference, ymax, ci_identifier='C&I'):
 
     ax0.set_xticklabels([''])
     ax0.tick_params(axis='both', which='both', length=0, pad=8)
-    ax0.set_title('Cost', loc='left', fontsize=9, fontweight='bold')
-    ax0.set_ylabel('Cost of Procurement ($ billion)')
+    # ax0.set_title('Cost', loc='left', fontsize=9, fontweight='bold', fontproperties=work_sans_font_medium)
+    ax0.set_ylabel('Cost of Procurement ($ billion)', fontproperties=work_sans_font)
     ax0.legend(loc='upper left', frameon=False, fontsize='small')
     ax0.set_ylim([0, round(ymax * 1.2, 1)])
     sns.despine(ax=ax0, bottom=False, right=True, top=True)
@@ -79,12 +87,12 @@ def plot_cfe_hmap(n, n_reference, ymax, ci_identifier='C&I'):
     )
     colorbar = ax1.collections[0].colorbar
     colorbar.set_ticks([0, 1])
-    colorbar.set_ticklabels(['100%\nDirty', '100%\nClean'])
+    colorbar.set_ticklabels(['100%\nDirty', '100%\nClean'], fontproperties = work_sans_font)
 
-    ax1.set_xlabel('\nTime of Day (Hour)')
+    ax1.set_xlabel('\nTime of Day (Hour)', fontproperties=work_sans_font)
     ax1.set_ylabel('')
-    ax1.set_xticklabels(['Morning', 'Noon', 'Evening'])
-    ax1.set_yticklabels(['Day 01', 'Day 15', 'Day 30'], rotation=0, fontsize=9)
+    ax1.set_xticklabels(['Morning', 'Noon', 'Evening'], fontproperties=work_sans_font)
+    ax1.set_yticklabels(['Day 01', 'Day 15', 'Day 30'], rotation=0, fontsize=9, fontproperties=work_sans_font)
     ax1.tick_params(axis='both', which='both', length=0, pad=8)
     return f, ax0, ax1
 
@@ -194,9 +202,25 @@ def tech_color_palette():
         "Ammonia": "#d9a88b",
         "Hydrogen": "#f3f3f3",
         "Storage": "#69b2f5",
-        "Pumpedhydro": "#a5d1f9",
+        "Pumped Hydro": "#a5d1f9",
         "Battery": "#c3e0fb",
         "Batteries": "#c3e0fb",
         "Interconnectors": "#ba63da",
         "DSR": "#feba9a",
+        'Agricultural Waste Solids': '#b7492d',
+        'Bioenergy': '#e25329',
+        'Bituminous Coal': '#322f34',
+        'Coal Unspecified': '#322f34',
+        'Diesel': '#5d407c',
+        'Gas Unspecified': '#bababa',
+        'Lignite': '#322f34',
+        'Liquified Natural Gas': '#bababa',
+        'Natural Gas': '#bababa',
+        'Naphtha': '#bababa',
+        'Sub-bituminous Coal': '#322f34',
+        'Waste': '#b7492d',
+        'Waste Unspecified': '#b7492d',
+        'Water': '#8292e8',
+        'Transmission': '#ba63da',
+        'AC': '#ba63da',
     }

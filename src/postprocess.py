@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 
 from matplotlib.ticker import MaxNLocator
 
@@ -16,7 +17,7 @@ def plot_results(path_to_run_dir: str):
 
     # set tz plotting theme
     cplt.set_tz_theme()
-    cplt.set_tz_theme()
+    # cplt.set_tz_theme()
 
     # make results dir if it doesn't exist
     if not os.path.exists(os.path.join(path_to_run_dir, 'results')):
@@ -33,6 +34,13 @@ def plot_results(path_to_run_dir: str):
 
     # load list of C&I carriers to be plot
     ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+
+    # Add Work Sans font to matplotlib
+    work_sans_path_light = './assets/WorkSans-Light.ttf'
+    work_sans_path_medium = './assets/WorkSans-Medium.ttf'
+    work_sans_font = fm.FontProperties(fname=work_sans_path_light)
+    work_sans_font_medium = fm.FontProperties(fname=work_sans_path_medium)
+    # plt.rcParams['font.family'] = work_sans_font.get_name()
     
     # ------------------------------------------------------------------
     # C&I Portfolio Capacity [GW]
@@ -83,11 +91,12 @@ def plot_results(path_to_run_dir: str):
     res.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
     cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in cfe.columns])
 
-    ax0.set_ylabel('C&I procured portfolio [GW]')
-    ax1.set_xlabel('CFE Score [%]')
+    ax0.set_ylabel('C&I procured portfolio [GW]', fontproperties=work_sans_font)
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     for ax in [ax0, ax1]:
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
         sns.despine(ax=ax, left=False)
 
@@ -95,6 +104,10 @@ def plot_results(path_to_run_dir: str):
     legend = ax1.legend()
     legend.set_title(None)
     legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
 
     # Adjust horizontal space between ax0 and ax1
     fig.subplots_adjust(wspace=0.1)
@@ -157,18 +170,18 @@ def plot_results(path_to_run_dir: str):
         .pivot_table(index='CFE Score', columns='carrier', values='annual_system_cost [M$]')
         .div(1e3)
     )
-    print(res_ci_costs)
 
     colors = cplt.tech_color_palette()
 
     res_ci_costs.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res_ci_costs.columns])
     cfe_ci_costs.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in cfe_ci_costs.columns])
 
-    ax0.set_ylabel('C&I procured portfolio cost [billion $/GW]')
-    ax1.set_xlabel('CFE Score [%]')
+    ax0.set_ylabel('C&I procured portfolio cost [billion $/GW]', fontproperties=work_sans_font)
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     for ax in [ax0, ax1]:
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
         sns.despine(ax=ax, left=False)
 
@@ -176,6 +189,10 @@ def plot_results(path_to_run_dir: str):
     legend = ax1.legend()
     legend.set_title(None)
     legend.get_frame().set_linewidth(0)
+
+        # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
 
     # Adjust horizontal space between ax0 and ax1
     fig.subplots_adjust(wspace=0.1)
@@ -229,13 +246,15 @@ def plot_results(path_to_run_dir: str):
 
     for ax in [ax0, ax1]:
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        ax.set_xticklabels(ax.get_xticklabels(), fontproperties=work_sans_font)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
         sns.despine(ax=ax, left=False)
 
-    ax0.set_ylabel('Emission Reduction [%]')
+    ax0.set_ylabel('Emission Reduction [%]', fontproperties=work_sans_font)
     ax1.set_ylabel('')
 
     ax0.set_xlabel('')
-    ax1.set_xlabel('CFE Score [%]')
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
     
     # save plot
     fig.savefig(
@@ -246,7 +265,7 @@ def plot_results(path_to_run_dir: str):
     )
 
     # ------------------------------------------------------------------
-    # EMISSION RATE
+    # SYSTEM EMISSION RATE
 
     emissions = (
         pd
@@ -293,15 +312,16 @@ def plot_results(path_to_run_dir: str):
     for ax in [ax0, ax1, ax2]:
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
         sns.despine(ax=ax, left=False)
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
 
-    ax0.set_ylabel('Emission Rate [gCO$_2$ kWh$^{-1}$]')
+    ax0.set_ylabel('System Emission Rate [gCO$_2$ kWh$^{-1}$]', fontproperties=work_sans_font)
     ax1.set_ylabel('')
     ax2.set_ylabel('')
 
     ax0.set_xlabel('')
     ax1.set_xlabel('')
-    ax2.set_xlabel('CFE Score [%]')
+    ax2.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     # save plot
     fig.savefig(
@@ -356,13 +376,14 @@ def plot_results(path_to_run_dir: str):
     for ax in [ax0, ax1]:
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
         sns.despine(ax=ax, left=False)
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
 
-    ax0.set_ylabel('Emission Rate [gCO$_2$ kWh$^{-1}$]')
+    ax0.set_ylabel('C&I Emission Rate [gCO$_2$ kWh$^{-1}$]', fontproperties=work_sans_font)
     ax1.set_ylabel('')
 
     ax0.set_xlabel('')
-    ax1.set_xlabel('CFE Score [%]')
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     # save plot
     fig.savefig(
@@ -429,17 +450,18 @@ def plot_results(path_to_run_dir: str):
     res.plot(kind='bar', stacked=True, ax=ax1, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
     cfe.plot(kind='bar', stacked=True, ax=ax2, legend=True, color=[colors.get(x, '#333333') for x in res.columns])
 
-    ax0.set_ylabel('Total System Cost\n[$ billion]')
+    ax0.set_ylabel('Total System Cost\n[$ billion]', fontproperties=work_sans_font)
 
     ax0.set_xlabel('')
     ax1.set_xlabel('')
-    ax2.set_xlabel('CFE Score [%]')
+    ax2.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     for ax in [ax0, ax1, ax2]:
         # set y-axis grid
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
         # Rotate x-ticks
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
         # despine
         sns.despine(ax=ax, left=False)
 
@@ -447,9 +469,13 @@ def plot_results(path_to_run_dir: str):
     fig.subplots_adjust(wspace=0.1)
 
     # Remove legend title and box
-    legend = ax2.legend(ncol=99)
+    legend = ax2.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
     legend.set_title(None)
     legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
 
     # save plot
     fig.savefig(
@@ -460,7 +486,7 @@ def plot_results(path_to_run_dir: str):
     )
 
     # ------------------------------------------------------------------
-    # Costs vs benefits relative to reference scenario
+    # C&I costs vs benefits relative to reference scenario
 
     cost_results = (
         pd.concat(
@@ -536,17 +562,22 @@ def plot_results(path_to_run_dir: str):
     for ax in [ax0, ax1]:
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
         ax.axhline(0, color='white', linewidth=0.8, linestyle='-')
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
 
     ax0.set_xlabel('')
-    ax0.set_ylabel('System Cost and Benefits\n[billion USD]')
+    ax0.set_ylabel('C&I Cost and Benefits\n[billion USD]', fontproperties=work_sans_font)
 
-    ax1.set_xlabel('CFE Score [%]')
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     # Remove legend title and box
     legend = ax1.legend(ncol=2)
     legend.set_title(None)
     legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
 
     # save plot
     fig.savefig(
@@ -608,16 +639,17 @@ def plot_results(path_to_run_dir: str):
     res.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
     cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in res.columns])
 
-    ax0.set_ylabel('System Cost [$/MWh]')
+    ax0.set_ylabel('C&I Electricity Cost [$/MWh]', fontproperties=work_sans_font)
 
     ax0.set_xlabel('')
-    ax1.set_xlabel('CFE Score [%]')
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     for ax in [ax0, ax1]:
         # set y-axis grid
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
         # Rotate x-ticks
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
         # despine
         sns.despine(ax=ax, left=False)
 
@@ -625,9 +657,13 @@ def plot_results(path_to_run_dir: str):
     fig.subplots_adjust(wspace=0.1)
 
     # Remove legend title and box
-    legend = ax1.legend(ncol=99)
+    legend = ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
     legend.set_title(None)
     legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
 
     # save plot
     fig.savefig(
@@ -674,19 +710,24 @@ def plot_results(path_to_run_dir: str):
     res.plot(kind='bar', stacked=True, ax=ax0, legend=False)
     cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True)
 
-    ax0.set_ylabel('C&I Procurement Mix\n[% of load]')
-    ax1.set_xlabel('CFE Score [%]')
+    ax0.set_ylabel('C&I Procurement Mix\n[% of load]', fontproperties=work_sans_font)
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     for ax in [ax0, ax1]:
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.set_yticklabels(ax.get_yticklabels(), fontproperties=work_sans_font)
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
         sns.despine(ax=ax, left=False)
 
     # Remove legend title and box
     # Remove legend title and box
-    legend = ax1.legend(ncol=99, loc='upper center', bbox_to_anchor=(0.5, 1.1))
+    legend = ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
     legend.set_title(None)
     legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
 
     # Adjust horizontal space between ax0 and ax1
     fig.subplots_adjust(wspace=0.1)
@@ -713,14 +754,14 @@ def plot_results(path_to_run_dir: str):
         # set fname
         if 'n_bf' in k:
             fname = 'reference'
-            ax.set_title(f'{fname}', loc='center', fontsize=10)
+            ax0.set_title(f'{fname}', loc='center', fontsize=14)
         elif 'n_am' in k:
             fname = 'RES100'
-            ax.set_title(f'{fname}', loc='center', fontsize=10)
+            ax0.set_title(f'{fname}', loc='center', fontsize=14)
         elif 'n_hm' in k:
             fname = k.split('_')[2]
             cfe_score = int( fname.replace('CFE','') )
-            ax0.set_title(f'{cfe_score}% clean procurement: hour-by-hour\n\n', loc='left', fontsize=14, fontweight='bold')
+            ax0.set_title(f'{cfe_score}% clean procurement: hour-by-hour\n\n', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
         
         # save plot
         fig.savefig(
