@@ -8,7 +8,7 @@ import matplotlib.font_manager as fm
 from . import get as cget
 from . import plotting as cplt
 
-def plot_cfe_hmap(n, n_reference, ymax, ci_identifier='C&I'):
+def plot_cfe_hmap(n, n_reference, ymax, fields_to_plot, ci_identifier='C&I'):
     '''Plot the CFE score as a heatmap
     '''
 
@@ -31,7 +31,7 @@ def plot_cfe_hmap(n, n_reference, ymax, ci_identifier='C&I'):
 
     # total system cost
     cmap_dict = cplt.tech_color_palette()
-    fields_to_plot = ['Battery', 'Solar', 'Onshore Wind']
+    ci_techs = fields_to_plot
 
     cost = (
         cget
@@ -40,7 +40,7 @@ def plot_cfe_hmap(n, n_reference, ymax, ci_identifier='C&I'):
             columns='carrier', 
             values='annual_system_cost [M$]'
         )
-        .drop([i for i in cget.get_total_ci_procurement_cost(n, n_reference).carrier.unique() if i not in fields_to_plot], axis=1)
+        .drop([i for i in cget.get_total_ci_procurement_cost(n, n_reference).carrier.unique() if i not in ci_techs.values], axis=1)
         .div(1e3)
     )
 

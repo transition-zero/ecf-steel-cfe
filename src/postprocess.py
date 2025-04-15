@@ -506,12 +506,12 @@ def plot_results(path_to_run_dir: str):
     )
 
     # ------------------------------------------------------------------
-    # C&I costs vs benefits relative to reference scenario
+    # Generation mix by scenario
 
-    cost_results = (
+    generation_mix = (
         pd.concat(
             [
-                solved_networks[k].statistics()[['Capital Expenditure', 'Operational Expenditure']].assign(name=k) 
+                solved_networks[k].statistics()[['Supply']].assign(name=k) 
                 for k in solved_networks.keys()
             ], 
         axis=0
@@ -521,134 +521,32 @@ def plot_results(path_to_run_dir: str):
             'name'
         )
         .drop('name', axis=1)
-    )
-
-    # get results for reference scenario
-    ref = cost_results.query("Scenario == 'Reference'")
-
-    # loop through each scenario and calculate cost delta
-    cost_delta = pd.concat(
-        [
-            cost_results.query(f"Scenario == '{s}'")
-            .assign(
-                **{
-                    'Capital Expenditure': lambda x: x['Capital Expenditure'] - ref['Capital Expenditure'].values,
-                    'Operational Expenditure': lambda x: x['Operational Expenditure'] - ref['Operational Expenditure'].values
-                }
-            )
-            for s in cost_results.Scenario.unique().tolist() if s != 'Reference'
-        ],
-        axis=0
-    )
-
-    cost_delta = (
-        cost_delta
-        .rename(columns={'Capital Expenditure': 'CapEx', 'Operational Expenditure': 'OpEx'})
         .reset_index()
-        .rename(columns={'level_0' : 'Component', 'level_1' : 'Technology'})
-        .melt(
-            id_vars=['Scenario', 'Component', 'Technology'], 
-            value_vars=['CapEx', 'OpEx']
-        )
-        .query(" ~Technology.isin(['Transmission', '-'])")
-        .pivot_table(
-            index='Scenario', 
-            columns=['Technology','variable'], 
-            values='value', 
-            aggfunc='sum'
-        )
+        .query("level_0 in ['Generator', 'StorageUnit']")
     )
 
-    cost_delta = cost_delta.loc[:, (cost_delta.sum(axis=0) != 0)]
-
-    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(10,4), width_ratios=[1, 10])
-
-    # set theme
-    cplt.set_tz_theme()
-
-    # plot 100% RES
-    res = cost_delta.loc[['100% RES']].div(1e9)
-    res.plot(kind='bar', stacked=True, ax=ax0, legend=False)
-    # add net cost marker
-    # ax0.scatter(x=res.index, y=[res.sum(axis=1)] * len(res.index), color='red', marker='s', edgecolors='black', linewidths=1)
-
-    # plot cfe
-    cfe = cost_delta.loc[cost_delta.index != '100% RES'].div(1e9).copy()
-    cfe.index = [int(i.replace('CFE-', '')) for i in cfe.index]
-    cfe.sort_index(inplace=True)
-    cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True)
-
-    # formatting
-    for ax in [ax0, ax1]:
-        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
-        ax.axhline(0, color='white', linewidth=0.8, linestyle='-')
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
-        for label in ax.get_yticklabels():
-            label.set_fontproperties(work_sans_font)
-
-    ax0.set_xlabel('')
-    ax0.set_ylabel('C&I Cost and Benefits\n[billion USD]', fontproperties=work_sans_font)
-
-    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
-
-    # Remove legend title and box
-    legend = ax1.legend(ncol=2)
-    legend.set_title(None)
-    legend.get_frame().set_linewidth(0)
-
-    # Set font of the legend
-    for text in legend.get_texts():
-        text.set_fontproperties(work_sans_font)
-
-    # save plot
-    fig.savefig(
-        os.path.join(
-            path_to_run_dir, 'results/cost_vs_benefit_by_scenario.png'
-        ),
-        bbox_inches='tight'
-    )
-
-    # ------------------------------------------------------------------
-    # System costs ($/MWh) by scenario
-
-    # stacked bar plot
-    costs = (
-        pd.concat(
-            [
-                cget
-                .get_unit_cost(solved_networks[k])
-                .assign(name=k)
-                for k, n in solved_networks.items()
-            ]
-        )
-        .pipe(
-            cget.split_scenario_col,
-            'name',
-        )
-        .drop('name', axis=1)
-    )
-
-    costs = costs.query(" ~carrier.isin(['Transmission', '-']) ").reset_index(drop=True)
-
-    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(10,4), width_ratios=[1,10])
+    fig, ax0, ax1, ax2 = cplt.bar_plot_3row(figsize=(10,4), width_ratios=[1,1,10])
 
     # get relevant data
     ref = (
-        costs
-        .loc[costs['Scenario'] == 'Reference']
-        .pivot_table(columns='carrier', index='Scenario', values='System Cost [$/MWh]')
+        generation_mix
+        .loc[generation_mix['Scenario'] == 'Reference']
+        .pivot_table(columns='level_1', index='Scenario', values='Supply')
+        .div(1e6)
     )
 
     res = (
-        costs
-        .loc[costs['Scenario'] == '100% RES']
-        .pivot_table(columns='carrier', index='Scenario', values='System Cost [$/MWh]')
+        generation_mix
+        .loc[generation_mix['Scenario'] == '100% RES']
+        .pivot_table(columns='level_1', index='Scenario', values='Supply')
+        .div(1e6)
     )
 
     cfe = (
-        costs
-        .loc[costs['Scenario'].str.contains('CFE')]
-        .pivot_table(columns='carrier', index='CFE Score', values='System Cost [$/MWh]')
+        generation_mix
+        .loc[generation_mix['Scenario'].str.contains('CFE')]
+        .pivot_table(columns='level_1', index='CFE Score', values='Supply')
+        .div(1e6)
     )
 
     # ---
@@ -656,30 +554,35 @@ def plot_results(path_to_run_dir: str):
 
     colors = cplt.tech_color_palette()
 
-    #ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
-    res.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
-    cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in res.columns])
+    ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    res.plot(kind='bar', stacked=True, ax=ax1, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    cfe.plot(kind='bar', stacked=True, ax=ax2, legend=True, color=[colors.get(x, '#333333') for x in res.columns])
 
-    ax0.set_ylabel('C&I Electricity Cost [$/MWh]', fontproperties=work_sans_font)
+    ax0.set_ylabel('Generation [TWh]', fontproperties=work_sans_font)
 
     ax0.set_xlabel('')
-    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+    ax1.set_xlabel('')
+    ax2.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
-    for ax in [ax0, ax1]:
+    for ax in [ax0, ax1, ax2]:
         # set y-axis grid
         ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
-        # Rotate x-ticks
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
         for label in ax.get_yticklabels():
             label.set_fontproperties(work_sans_font)
+        # Rotate x-ticks
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
         # despine
         sns.despine(ax=ax, left=False)
 
     # Adjust horizontal space between ax0 and ax1
     fig.subplots_adjust(wspace=0.1)
-
     # Remove legend title and box
-    legend = ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
+    handles, labels = ax2.get_legend_handles_labels()
+    order = [cfe.columns.tolist().index(label) for label in labels if label in cfe.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+
+    legend = ax2.legend(sorted_handles, sorted_labels, loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
     legend.set_title(None)
     legend.get_frame().set_linewidth(0)
 
@@ -690,10 +593,293 @@ def plot_results(path_to_run_dir: str):
     # save plot
     fig.savefig(
         os.path.join(
-            path_to_run_dir, 'results/unit_cost_by_scenario.png'
+            path_to_run_dir, 'results/generation_mix.png'
         ),
         bbox_inches='tight'
     )
+
+    # ------------------------------------------------------------------
+    # Capacity mix by scenario
+
+    capacity_mix = (
+        pd.concat(
+            [
+                solved_networks[k].statistics()[['Optimal Capacity']].assign(name=k) 
+                for k in solved_networks.keys()
+            ], 
+        axis=0
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name'
+        )
+        .drop('name', axis=1)
+        .reset_index()
+        .query("level_0 in ['Generator', 'StorageUnit']")
+    )
+
+    fig, ax0, ax1, ax2 = cplt.bar_plot_3row(figsize=(10,4), width_ratios=[1,1,10])
+
+    # get relevant data
+    ref = (
+        capacity_mix
+        .loc[capacity_mix['Scenario'] == 'Reference']
+        .pivot_table(columns='level_1', index='Scenario', values='Optimal Capacity')
+        .div(1e3)
+    )
+
+    res = (
+        capacity_mix
+        .loc[capacity_mix['Scenario'] == '100% RES']
+        .pivot_table(columns='level_1', index='Scenario', values='Optimal Capacity')
+        .div(1e3)
+    )
+
+    cfe = (
+        capacity_mix
+        .loc[capacity_mix['Scenario'].str.contains('CFE')]
+        .pivot_table(columns='level_1', index='CFE Score', values='Optimal Capacity')
+        .div(1e3)
+    )
+
+    # ---
+    # plot
+
+    colors = cplt.tech_color_palette()
+
+    ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    res.plot(kind='bar', stacked=True, ax=ax1, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    cfe.plot(kind='bar', stacked=True, ax=ax2, legend=True, color=[colors.get(x, '#333333') for x in res.columns])
+
+    ax0.set_ylabel('Capacity [GW]', fontproperties=work_sans_font)
+
+    ax0.set_xlabel('')
+    ax1.set_xlabel('')
+    ax2.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+
+    for ax in [ax0, ax1, ax2]:
+        # set y-axis grid
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(work_sans_font)
+        # Rotate x-ticks
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        # despine
+        sns.despine(ax=ax, left=False)
+
+    # Adjust horizontal space between ax0 and ax1
+    fig.subplots_adjust(wspace=0.1)
+    # Remove legend title and box
+    handles, labels = ax2.get_legend_handles_labels()
+    order = [cfe.columns.tolist().index(label) for label in labels if label in cfe.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+
+    legend = ax2.legend(sorted_handles, sorted_labels, loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
+
+    # save plot
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/capacity_mix.png'
+        ),
+        bbox_inches='tight'
+    )
+
+    # # ------------------------------------------------------------------
+    # # C&I costs vs benefits relative to reference scenario
+
+    # cost_results = (
+    #     pd.concat(
+    #         [
+    #             solved_networks[k].statistics()[['Capital Expenditure', 'Operational Expenditure']].assign(name=k) 
+    #             for k in solved_networks.keys()
+    #         ], 
+    #     axis=0
+    #     )
+    #     .pipe(
+    #         cget.split_scenario_col,
+    #         'name'
+    #     )
+    #     .drop('name', axis=1)
+    # )
+
+    # # get results for reference scenario
+    # ref = cost_results.query("Scenario == 'Reference'")
+
+    # # loop through each scenario and calculate cost delta
+    # cost_delta = pd.concat(
+    #     [
+    #         cost_results.query(f"Scenario == '{s}'")
+    #         .assign(
+    #             **{
+    #                 'Capital Expenditure': lambda x: x['Capital Expenditure'] - ref['Capital Expenditure'].values,
+    #                 'Operational Expenditure': lambda x: x['Operational Expenditure'] - ref['Operational Expenditure'].values
+    #             }
+    #         )
+    #         for s in cost_results.Scenario.unique().tolist() if s != 'Reference'
+    #     ],
+    #     axis=0
+    # )
+
+    # cost_delta = (
+    #     cost_delta
+    #     .rename(columns={'Capital Expenditure': 'CapEx', 'Operational Expenditure': 'OpEx'})
+    #     .reset_index()
+    #     .rename(columns={'level_0' : 'Component', 'level_1' : 'Technology'})
+    #     .melt(
+    #         id_vars=['Scenario', 'Component', 'Technology'], 
+    #         value_vars=['CapEx', 'OpEx']
+    #     )
+    #     .query(" ~Technology.isin(['Transmission', '-'])")
+    #     .pivot_table(
+    #         index='Scenario', 
+    #         columns=['Technology','variable'], 
+    #         values='value', 
+    #         aggfunc='sum'
+    #     )
+    # )
+
+    # cost_delta = cost_delta.loc[:, (cost_delta.sum(axis=0) != 0)]
+
+    # fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(10,4), width_ratios=[1, 10])
+
+    # # set theme
+    # cplt.set_tz_theme()
+
+    # # plot 100% RES
+    # res = cost_delta.loc[['100% RES']].div(1e9)
+    # res.plot(kind='bar', stacked=True, ax=ax0, legend=False)
+    # # add net cost marker
+    # # ax0.scatter(x=res.index, y=[res.sum(axis=1)] * len(res.index), color='red', marker='s', edgecolors='black', linewidths=1)
+
+    # # plot cfe
+    # cfe = cost_delta.loc[cost_delta.index != '100% RES'].div(1e9).copy()
+    # cfe.index = [int(i.replace('CFE-', '')) for i in cfe.index]
+    # cfe.sort_index(inplace=True)
+    # cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True)
+
+    # # formatting
+    # for ax in [ax0, ax1]:
+    #     ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+    #     ax.axhline(0, color='white', linewidth=0.8, linestyle='-')
+    #     ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+    #     for label in ax.get_yticklabels():
+    #         label.set_fontproperties(work_sans_font)
+
+    # ax0.set_xlabel('')
+    # ax0.set_ylabel('C&I Cost and Benefits\n[billion USD]', fontproperties=work_sans_font)
+
+    # ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+
+    # # Remove legend title and box
+    # legend = ax1.legend(ncol=2)
+    # legend.set_title(None)
+    # legend.get_frame().set_linewidth(0)
+
+    # # Set font of the legend
+    # for text in legend.get_texts():
+    #     text.set_fontproperties(work_sans_font)
+
+    # # save plot
+    # fig.savefig(
+    #     os.path.join(
+    #         path_to_run_dir, 'results/cost_vs_benefit_by_scenario.png'
+    #     ),
+    #     bbox_inches='tight'
+    # )
+
+    # # ------------------------------------------------------------------
+    # # System costs ($/MWh) by scenario
+
+    # # stacked bar plot
+    # costs = (
+    #     pd.concat(
+    #         [
+    #             cget
+    #             .get_unit_cost(solved_networks[k])
+    #             .assign(name=k)
+    #             for k, n in solved_networks.items()
+    #         ]
+    #     )
+    #     .pipe(
+    #         cget.split_scenario_col,
+    #         'name',
+    #     )
+    #     .drop('name', axis=1)
+    # )
+
+    # costs = costs.query(" ~carrier.isin(['Transmission', '-']) ").reset_index(drop=True)
+
+    # fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(10,4), width_ratios=[1,10])
+
+    # # get relevant data
+    # ref = (
+    #     costs
+    #     .loc[costs['Scenario'] == 'Reference']
+    #     .pivot_table(columns='carrier', index='Scenario', values='System Cost [$/MWh]')
+    # )
+
+    # res = (
+    #     costs
+    #     .loc[costs['Scenario'] == '100% RES']
+    #     .pivot_table(columns='carrier', index='Scenario', values='System Cost [$/MWh]')
+    # )
+
+    # cfe = (
+    #     costs
+    #     .loc[costs['Scenario'].str.contains('CFE')]
+    #     .pivot_table(columns='carrier', index='CFE Score', values='System Cost [$/MWh]')
+    # )
+
+    # # ---
+    # # plot
+
+    # colors = cplt.tech_color_palette()
+
+    # #ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    # res.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    # cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in res.columns])
+
+    # ax0.set_ylabel('C&I Electricity Cost [$/MWh]', fontproperties=work_sans_font)
+
+    # ax0.set_xlabel('')
+    # ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+
+    # for ax in [ax0, ax1]:
+    #     # set y-axis grid
+    #     ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+    #     # Rotate x-ticks
+    #     ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+    #     for label in ax.get_yticklabels():
+    #         label.set_fontproperties(work_sans_font)
+    #     # despine
+    #     sns.despine(ax=ax, left=False)
+
+    # # Adjust horizontal space between ax0 and ax1
+    # fig.subplots_adjust(wspace=0.1)
+
+    # # Remove legend title and box
+    # legend = ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
+    # legend.set_title(None)
+    # legend.get_frame().set_linewidth(0)
+
+    # # Set font of the legend
+    # for text in legend.get_texts():
+    #     text.set_fontproperties(work_sans_font)
+
+    # # save plot
+    # fig.savefig(
+    #     os.path.join(
+    #         path_to_run_dir, 'results/unit_cost_by_scenario.png'
+    #     ),
+    #     bbox_inches='tight'
+    # )
 
     # ------------------------------------------------------------------
     # C&I ENERGY BALANCE
@@ -765,21 +951,20 @@ def plot_results(path_to_run_dir: str):
 
     # ------------------------------------------------------------------
     # HEATMAP OF CFE SCORE
-    fields_to_plot = ['Battery', 'Solar', 'Onshore Wind']
-    ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030'],solved_networks['n_bf']).query("carrier.isin(@fields_to_plot)")['annual_system_cost [M$]'].sum() / 1e3
+    ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030'],solved_networks['n_bf']).query("carrier.isin(@ci_carriers)")['annual_system_cost [M$]'].sum() / 1e3
     for k in solved_networks.keys():
         # get networks
         n_reference = solved_networks['n_bf'].copy()
         n = solved_networks[k].copy()
         # init fig
-        fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, ci_identifier='C&I')
+        fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, fields_to_plot=ci_carriers, ci_identifier='C&I')
 
         # set fname
         if 'n_bf' in k:
-            fname = 'reference'
+            fname = '2030 Reference Scenario'
             ax0.set_title(f'{fname}', loc='center', fontsize=14)
         elif 'n_am' in k:
-            fname = 'RES100'
+            fname = '100% Annual Matching'
             ax0.set_title(f'{fname}', loc='center', fontsize=14)
         elif 'n_hm' in k:
             fname = k.split('_')[2]
