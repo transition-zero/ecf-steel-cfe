@@ -127,7 +127,7 @@ def plot_results(path_to_run_dir: str):
     )
 
     # ------------------------------------------------------------------
-    # C&I Portfolio Procurement cost [currency/GW]
+    # C&I Portfolio Procurement cost [currency]
 
     fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[1,10], figsize=(10,4))
 
@@ -182,7 +182,7 @@ def plot_results(path_to_run_dir: str):
     res_ci_costs.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res_ci_costs.columns])
     cfe_ci_costs.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in cfe_ci_costs.columns])
 
-    ax0.set_ylabel('C&I procured portfolio cost [billion $/GW]', fontproperties=work_sans_font)
+    ax0.set_ylabel('C&I procured portfolio cost [billion $]', fontproperties=work_sans_font)
     ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     for ax in [ax0, ax1]:
