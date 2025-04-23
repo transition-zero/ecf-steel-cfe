@@ -157,6 +157,17 @@ def get_unit_cost(n : pypsa.Network) -> pd.DataFrame:
         .rename(columns={'level_0' : 'component','level_1' : 'carrier', 0: 'System Cost [$/MWh]'})
     )
 
+def get_ci_generation(n : pypsa.Network) -> pd.DataFrame:
+    '''Returns the generation in MWh for each CI bus
+    '''
+
+    # ci_buses = n.buses[n.buses.index.str.contains('C&I')].index.tolist()
+    ci_generation = n.generators_t.p.filter(regex='C&I').sum().sum()
+    ci_generation_df = pd.DataFrame({
+        'name': [n.name],
+        'ci_generation': [ci_generation]
+    })
+    return ci_generation_df
 
 def get_total_ci_procurement_cost(n : pypsa.Network, n_reference: pypsa.Network) -> pd.DataFrame:
     '''Returns the total annual system cost in M$ for each C&I procured component and carrier
