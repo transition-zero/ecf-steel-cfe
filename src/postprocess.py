@@ -240,6 +240,135 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         bbox_inches='tight'
     )
 
+    # ------------------------------------------------------------------
+    # Generation mix by scenario for C&I and parent node
+
+    generation_mix = (
+        pd.concat(
+            [
+                solved_networks[k].statistics(
+                    groupby = ['bus','carrier']
+                    )[['Supply']].assign(name=k) 
+                for k in solved_networks.keys()
+            ], 
+        axis=0
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name'
+        )
+        .drop('name', axis=1)
+        .reset_index()
+        .query("level_0 in ['Generator', 'StorageUnit']")
+    )
+
+    # get relevant data
+    ref = (
+        generation_mix
+        .loc[
+            (generation_mix['Scenario'] == 'Reference') 
+            &
+            (generation_mix['level_1'].str.contains(nodes_with_ci_loads))
+            ]
+        .pivot_table(columns='level_2', index='Scenario', values='Supply')
+        .div(1e6)
+    )
+
+    res = (
+        generation_mix
+        .loc[
+            (generation_mix['Scenario'] == '100% RES')
+            &
+            (generation_mix['level_1'].str.contains(nodes_with_ci_loads))
+            ]
+        .pivot_table(columns='level_2', index='Scenario', values='Supply')
+        .div(1e6)
+    )
+
+    cfe = (
+        generation_mix
+        .loc[(generation_mix['Scenario'].str.contains('CFE'))
+            &
+            (generation_mix['level_1'].str.contains(nodes_with_ci_loads))
+            ]
+        .pivot_table(columns='level_2', index='CFE Score', values='Supply')
+        .div(1e6)
+    )
+
+    # save df
+    (pd.concat([ref, ref, cfe], axis=0)).to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/ci_and_parent_generation.csv'
+        ),
+        index=True
+    )
+
+
+    # ------------------------------------------------------------------
+    # Capacity mix by scenario for C&I and parent node
+
+    capacity_mix = (
+        pd.concat(
+            [
+                solved_networks[k].statistics(
+                    groupby = ['bus','carrier']
+                    )
+                    [['Optimal Capacity']].assign(name=k) 
+                for k in solved_networks.keys()
+            ], 
+        axis=0
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name'
+        )
+        .drop('name', axis=1)
+        .reset_index()
+        .query("level_0 in ['Generator', 'StorageUnit']")
+    )
+
+    # fig, ax0, ax1, ax2 = cplt.bar_plot_3row(figsize=(6,4), width_ratios=[1,1,10])
+
+    # get relevant data
+    ref = (
+        capacity_mix
+        .loc[
+            (capacity_mix['Scenario'] == 'Reference') 
+            &
+            (capacity_mix['level_1'].str.contains(nodes_with_ci_loads))
+            ]
+        .pivot_table(columns='level_2', index='Scenario', values='Optimal Capacity')
+        .div(1e3)
+    )
+
+    res = (
+        capacity_mix
+        .loc[
+            (capacity_mix['Scenario'] == '100% RES')
+            &
+            (capacity_mix['level_1'].str.contains(nodes_with_ci_loads))
+            ]
+        .pivot_table(columns='level_2', index='Scenario', values='Optimal Capacity')
+        .div(1e3)
+    )
+
+    cfe = (
+        capacity_mix
+        .loc[(capacity_mix['Scenario'].str.contains('CFE'))
+            &
+            (capacity_mix['level_1'].str.contains(nodes_with_ci_loads))
+            ]
+        .pivot_table(columns='level_2', index='CFE Score', values='Optimal Capacity')
+        .div(1e3)
+    )
+
+    # save df
+    (pd.concat([ref, ref, cfe], axis=0)).to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/ci_and_parent_capacity.csv'
+        ),
+        index=True
+    )
 
     # ------------------------------------------------------------------
     # C&I Portfolio Procurement cost [currency]
