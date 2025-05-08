@@ -140,107 +140,6 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     )
     
     # ------------------------------------------------------------------
-    # C&I Node Capacity, including non C&I assets [GW]
-
-    fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[1,10], figsize=(6,4))
-
-    
-
-    expanded_capacity = (
-        pd.concat(
-            [
-                solved_networks[k]
-                .statistics.expanded_capacity()
-                .reset_index()
-                .rename(columns={0:'capacity'})
-                .assign(name=k) 
-                for k, n in solved_networks.items()
-            ]
-        )
-        .pipe(
-            cget.split_scenario_col,
-            'name',
-        )
-        .drop('name', axis=1)
-        .query("capacity != 0")
-    )
-
-    # pull out relevant data
-    res = (
-        expanded_capacity
-        .loc[expanded_capacity['Scenario'] == '100% RES']
-        .drop(['Scenario','CFE Score'], axis=1)
-        .query(" ~carrier.isin(['Transmission']) ")
-        .pivot_table(columns='carrier', values='capacity')
-        .div(1e3)
-        .rename(index={'capacity':'100% RES'})
-    )
-    print(res)
-    cfe = (
-        expanded_capacity
-        .query("Scenario.str.contains('CFE')")
-        .sort_values('CFE Score')
-        .query(" ~carrier.isin(['Transmission']) ")
-        .pivot_table(index='CFE Score', columns='carrier', values='capacity')
-        .div(1e3)
-    )
-    print(cfe)
-    
-    # save df
-    (pd.concat([res, cfe], axis=0)).to_csv(
-        os.path.join(
-            path_to_run_dir, 'results/ci_capacity_by_scenario.csv'
-        ),
-        index=True
-    )
-
-    colors = cplt.tech_color_palette()
-
-    res.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
-    cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in cfe.columns])
-
-    ax0.set_ylabel('C&I procured portfolio [GW]', fontproperties=work_sans_font)
-    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
-
-    for ax in [ax0, ax1]:
-        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
-        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
-        for label in ax.get_yticklabels():
-            label.set_fontproperties(work_sans_font)
-        sns.despine(ax=ax, left=False)
-
-    # Remove legend title and box, make sure labels are displayed in the same order as in the plot
-    handles, labels = ax1.get_legend_handles_labels()
-    order = [cfe.columns.tolist().index(label) for label in labels if label in cfe.columns]
-    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
-    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
-
-    legend = ax1.legend(sorted_handles, sorted_labels, bbox_to_anchor=(1, 0.5), ncol=1)
-    legend.set_title(None)
-    legend.get_frame().set_linewidth(0)
-
-    # Set font of the legend
-    for text in legend.get_texts():
-        text.set_fontproperties(work_sans_font)
-
-    # Adjust horizontal space between ax0 and ax1
-    fig.subplots_adjust(wspace=0.1)
-
-    # save
-    fig.savefig(
-        os.path.join(
-            path_to_run_dir, 'results/ci_capacity_by_scenario.png'
-        ),
-        bbox_inches='tight'
-    )
-    fig.savefig(
-        os.path.join(
-            path_to_run_dir, 'results/ci_capacity_by_scenario.svg'
-        ),
-        bbox_inches='tight'
-    )
-
-    # ------------------------------------------------------------------
     # Generation mix by scenario for C&I and parent node
 
     generation_mix = (
@@ -259,7 +158,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         )
         .drop('name', axis=1)
         .reset_index()
-        .query("level_0 in ['Generator', 'StorageUnit']")
+        .query("level_0 in ['Generator', 'StorageUnit', 'Link']")
     )
 
     # get relevant data
@@ -270,7 +169,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
             &
             (generation_mix['level_1'].str.contains(nodes_with_ci_loads))
             ]
-        .pivot_table(columns='level_2', index='Scenario', values='Supply')
+        .pivot_table(columns='level_2', index='Scenario', values='Supply', aggfunc='sum')
         .div(1e6)
     )
 
@@ -281,7 +180,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
             &
             (generation_mix['level_1'].str.contains(nodes_with_ci_loads))
             ]
-        .pivot_table(columns='level_2', index='Scenario', values='Supply')
+        .pivot_table(columns='level_2', index='Scenario', values='Supply', aggfunc='sum')
         .div(1e6)
     )
 
@@ -291,18 +190,66 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
             &
             (generation_mix['level_1'].str.contains(nodes_with_ci_loads))
             ]
-        .pivot_table(columns='level_2', index='CFE Score', values='Supply')
+        .pivot_table(columns='level_2', index='CFE Score', values='Supply', aggfunc='sum')
         .div(1e6)
     )
 
     # save df
-    (pd.concat([ref, ref, cfe], axis=0)).to_csv(
+    (pd.concat([ref, res, cfe], axis=0)).to_csv(
         os.path.join(
             path_to_run_dir, 'results/ci_and_parent_generation.csv'
         ),
         index=True
     )
 
+    fig, ax0, ax1, ax2 = cplt.bar_plot_3row(width_ratios=[1,1,10], figsize=(6,4))
+
+    ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    res.plot(kind='bar', stacked=True, ax=ax1, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    cfe.plot(kind='bar', stacked=True, ax=ax2, legend=True, color=[colors.get(x, '#333333') for x in cfe.columns])
+
+    for ax in [ax0, ax1, ax2]:
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        sns.despine(ax=ax, left=False)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(work_sans_font)
+
+    ax0.set_ylabel('Generation [TWh]', fontproperties=work_sans_font)
+    ax1.set_ylabel('')
+    ax2.set_ylabel('')
+
+    ax0.set_xlabel('')
+    ax1.set_xlabel('')
+    ax2.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+
+    # Move the legend to the right and outside the plot
+    handles, labels = ax2.get_legend_handles_labels()
+    order = [cfe.columns.tolist().index(label) for label in labels if label in cfe.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+
+    legend = ax2.legend(sorted_handles, sorted_labels, loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
+
+    # save plot
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/ci_and_parent_generation.png'
+        ),
+        bbox_inches='tight'
+    ) 
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/ci_and_parent_generation.svg'
+        ),
+        bbox_inches='tight'
+    )
 
     # ------------------------------------------------------------------
     # Capacity mix by scenario for C&I and parent node
@@ -337,7 +284,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
             &
             (capacity_mix['level_1'].str.contains(nodes_with_ci_loads))
             ]
-        .pivot_table(columns='level_2', index='Scenario', values='Optimal Capacity')
+        .pivot_table(columns='level_2', index='Scenario', values='Optimal Capacity', aggfunc='sum')
         .div(1e3)
     )
 
@@ -348,7 +295,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
             &
             (capacity_mix['level_1'].str.contains(nodes_with_ci_loads))
             ]
-        .pivot_table(columns='level_2', index='Scenario', values='Optimal Capacity')
+        .pivot_table(columns='level_2', index='Scenario', values='Optimal Capacity', aggfunc='sum')
         .div(1e3)
     )
 
@@ -358,20 +305,71 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
             &
             (capacity_mix['level_1'].str.contains(nodes_with_ci_loads))
             ]
-        .pivot_table(columns='level_2', index='CFE Score', values='Optimal Capacity')
+        .pivot_table(columns='level_2', index='CFE Score', values='Optimal Capacity', aggfunc='sum')
         .div(1e3)
     )
 
     # save df
-    (pd.concat([ref, ref, cfe], axis=0)).to_csv(
+    (pd.concat([ref, res, cfe], axis=0)).to_csv(
         os.path.join(
             path_to_run_dir, 'results/ci_and_parent_capacity.csv'
         ),
         index=True
     )
 
+    fig, ax0, ax1, ax2 = cplt.bar_plot_3row(width_ratios=[1,1,10], figsize=(6,4))
+
+    ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    res.plot(kind='bar', stacked=True, ax=ax1, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    cfe.plot(kind='bar', stacked=True, ax=ax2, legend=True, color=[colors.get(x, '#333333') for x in cfe.columns])
+
+    for ax in [ax0, ax1, ax2]:
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        sns.despine(ax=ax, left=False)
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(work_sans_font)
+
+    ax0.set_ylabel('Capacity [GW]', fontproperties=work_sans_font)
+    ax1.set_ylabel('')
+    ax2.set_ylabel('')
+
+    ax0.set_xlabel('')
+    ax1.set_xlabel('')
+    ax2.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+
+    # Move the legend to the right and outside the plot
+    handles, labels = ax2.get_legend_handles_labels()
+    order = [cfe.columns.tolist().index(label) for label in labels if label in cfe.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+
+    legend = ax2.legend(sorted_handles, sorted_labels, loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
+
+    # save plot
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/ci_and_parent_capacity.png'
+        ),
+        bbox_inches='tight'
+    )
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/ci_and_parent_capacity.svg'
+        ),
+        bbox_inches='tight'
+    )
+
     # ------------------------------------------------------------------
     # C&I Portfolio Procurement cost [currency]
+
+    print('Creating C&I portfolio procurement cost by scenario plot')
 
     fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[1,10], figsize=(6,4))
 
@@ -427,12 +425,20 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         index=True
     )
 
+    # save df
+    (pd.concat([res_ci_costs, cfe_ci_costs], axis=0)).to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/ci_capacity_costs_by_scenario.csv'
+        ),
+        index=True
+    )
+
     colors = cplt.tech_color_palette()
 
     res_ci_costs.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res_ci_costs.columns])
     cfe_ci_costs.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in cfe_ci_costs.columns])
 
-    ax0.set_ylabel('C&I procured portfolio cost [billion $]', fontproperties=work_sans_font)
+    ax0.set_ylabel('C&I procured portfolio cost [M$]', fontproperties=work_sans_font)
     ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     for ax in [ax0, ax1]:
@@ -472,7 +478,6 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         ),
         bbox_inches='tight'
     )
-
 
     # ------------------------------------------------------------------
     # EMISSIONS
@@ -516,6 +521,14 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         index=True
     )
 
+     # save df
+    (pd.concat([res, cfe], axis=0)).to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/emissions_by_scenario.csv'
+        ),
+        index=True
+    )
+
     res.plot(kind='scatter', x='Scenario', y='relative_emission', ax=ax0, s=50)
     cfe.plot(kind='scatter', x='CFE Score', y='relative_emission', ax=ax1, s=50)
 
@@ -548,6 +561,8 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
 
     # ------------------------------------------------------------------
     # SYSTEM EMISSION RATE
+
+    print('Creating system emission rate by scenario plot')
 
     emissions = (
         pd
@@ -621,7 +636,6 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         ),
         bbox_inches='tight'
     )
-    # save plot
     fig.savefig(
         os.path.join(
             path_to_run_dir, 'results/emission_rate_by_scenario.svg'
@@ -631,6 +645,8 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
 
     # ------------------------------------------------------------------
     # C&I EMISSION RATE
+
+    print('Creating C&I emission rate by scenario plot')
 
     ci_emissions = (
         pd
@@ -710,6 +726,8 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     # ------------------------------------------------------------------
     # TOTAL SYSTEM COSTS BY SCENARIO 
     # > REF, 100% RES, CFE
+
+    print('Creating total system costs by scenario plot')
 
     # stacked bar plot
     costs = (
@@ -819,6 +837,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
 
     # ------------------------------------------------------------------
     # Generation mix by scenario
+    print('Creating generation mix plot')
 
     generation_mix = (
         pd.concat(
@@ -926,6 +945,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
 
     # ------------------------------------------------------------------
     # Capacity mix by scenario
+    print('Creating capacity maix plot')
 
     capacity_mix = (
         pd.concat(
@@ -1338,7 +1358,9 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
 
     # ------------------------------------------------------------------
     # C&I ENERGY BALANCE
+    print('Creating C&I energy balance plot')
 
+    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
     fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
 
     ci_procurement = (
@@ -1420,6 +1442,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
 
     # ------------------------------------------------------------------
     # HEATMAP OF CFE SCORE
+    print('Creating heatmap of CFE score')
     ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030'],solved_networks['n_bf']).query("carrier.isin(@ci_carriers)")['annual_system_cost [M$]'].sum() / 1e3
     for k in solved_networks.keys():
         # get networks
@@ -1440,6 +1463,8 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
             cfe_score = int( fname.replace('CFE','') )
             ax0.set_title(f'{cfe_score}% clean procurement: hour-by-hour\n\n', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
         
+        print(f'Plotting {fname} heatmap...')
+
         # save plot
         fig.savefig(
             os.path.join(
