@@ -1,5 +1,6 @@
 import os
 import yaml
+import pypsa
 
 
 def setup_dir(path_to_dir):
@@ -40,3 +41,23 @@ def load_configs(path):
         raise yaml.YAMLError(f"Error parsing YAML file: {e}")
     
     return configs
+
+def load_brownfield_network(run, configs):
+    """
+    Load a brownfield network from a specified path for use in the CFE run iterations
+    This is to prevent:
+        a) modifying the brownfield network in each iteration
+        b) avoiding re-solving the brownfield network in each iteration
+    """
+
+    brownfield_path = os.path.join(
+        configs["paths"]["output_model_runs"],
+        run["name"],
+        "solved_networks",
+        "brownfield_" + str(configs["global_vars"]["year"]) + ".nc",
+    )
+
+    brownfield_original = pypsa.Network()
+    brownfield_original.import_from_netcdf(brownfield_path)
+
+    return brownfield_original

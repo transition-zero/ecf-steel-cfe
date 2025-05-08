@@ -3,9 +3,11 @@ import os
 import click
 import pypsa
 
-
 from tz_pypsa.constraints import (
-    constr_bus_self_sufficiency
+    constr_cumulative_p_nom,
+    constr_bus_self_sufficiency,
+    constr_policy_targets,
+    constr_max_annual_utilisation
 )
 
 from run.run_scenarios import RunBrownfieldSimulation, RunCFE, RunRES100
@@ -91,8 +93,9 @@ def run_scenarios(configs):
         )
         for CFE_Score in run["cfe_score"]:
             print(f"Computing hourly matching scenario (CFE: {int(CFE_Score*100)}...")
+            N_BROWNFIELD_original = helpers.load_brownfield_network(run, configs)
             RunCFE(
-                N_BROWNFIELD,
+                N_BROWNFIELD_original,
                 CFE_Score=CFE_Score,
                 ci_identifier=ci_identifier,
                 run=run,

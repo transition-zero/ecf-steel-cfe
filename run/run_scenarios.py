@@ -4,6 +4,12 @@ import sys
 import pandas as pd
 import pypsa
 
+from tz_pypsa.constraints import (
+    constr_bus_self_sufficiency,
+    constr_max_annual_utilisation,
+    constr_policy_targets
+)
+
 from src import brownfield, cfe, helpers, postprocess
 
 
@@ -89,7 +95,9 @@ def PostProcessBrownfield(n: pypsa.Network, ci_identifier: str):
 
 
 def RunBrownfieldSimulation(run, configs):
+
     """Setup and run the brownfield simulation"""
+
     N_BROWNFIELD = brownfield.SetupBrownfieldNetwork(run, configs)
 
     N_BROWNFIELD = cfe.PrepareNetworkForCFE(
@@ -103,13 +111,33 @@ def RunBrownfieldSimulation(run, configs):
     print("prepared network for CFE")
     print("Begin solving...")
     # solver_options = {"Method": "barrier", "Presolve": 2, "Threads": 4, "Cores": 2}
-    N_BROWNFIELD.optimize(solver_name=configs["global_vars"]["solver"])
+    # N_BROWNFIELD.optimize(solver_name=configs["global_vars"]["solver"])
+
+    # lp_model = N_BROWNFIELD.optimize.create_model()
+    N_BROWNFIELD.optimize.create_model()
+
+    # BUS SELF SUFFICIENCY CONSTRAINT
+    constr_bus_self_sufficiency(N_BROWNFIELD, 
+                                min_self_sufficiency = 0.6)
+
+    # FOSSIL FUEL UTILIZATION RATE CONSTRAINT (AVAILABILITY FACTOR)
+    constr_max_annual_utilisation(N_BROWNFIELD, 
+                                  max_utilisation_rate = 0.85, 
+                                  carriers = ['coal','gas','oil','geothermal'])
+
+    # CONSTRAINTS FROM TARGETS AND POLICIES SHEET
+    constr_policy_targets(N_BROWNFIELD, 
+                          stock_model = run["stock_model"])
+
+    N_BROWNFIELD.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
+
     brownfield_path = os.path.join(
         configs["paths"]["output_model_runs"],
         run["name"],
         "solved_networks",
         "brownfield_" + str(configs["global_vars"]["year"]) + ".nc",
     )
+
     print(brownfield_path)
     N_BROWNFIELD.export_to_netcdf(brownfield_path)
 
@@ -223,8 +251,7 @@ def RunCFE(
 ):
     """Run 24/7 CFE scenario"""
 
-    N_CFE = N_BROWNFIELD  # .copy()
-    N_CFE = PostProcessBrownfield(N_CFE, ci_identifier=ci_identifier)
+    N_CFE = PostProcessBrownfield(N_BROWNFIELD, ci_identifier=ci_identifier)
 
     # init linopy model
     N_CFE.optimize.create_model()
