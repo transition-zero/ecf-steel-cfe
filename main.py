@@ -3,20 +3,6 @@ import os
 import click
 import pypsa
 
-from tz_pypsa.constraints import (
-    constr_cumulative_p_nom,
-    constr_bus_self_sufficiency,
-    constr_bus_individual_self_sufficiency,
-    constr_min_annual_generation,
-    constr_policy_targets,
-    constr_max_annual_utilisation,
-    constr_min_annual_utilisation_links,
-    constr_max_annual_utilisation_links,
-    constr_min_annual_utilisation_generator,
-    constr_max_annual_utilisation_generator,
-    constr_cofiring_ccs_generation_join_plant
-)
-
 from run.run_scenarios import RunBrownfieldSimulation, RunCFE, RunRES100
 from src import brownfield, cfe, helpers, postprocess
 
@@ -61,60 +47,8 @@ def solve_brownfield_network(run, configs, with_cfe: bool) -> pypsa.Network:
         final_brownfield = tza_brownfield_network
     
     final_brownfield.optimize.create_model()
+    brownfield.ApplyBrownfieldConstraints(final_brownfield, run, configs)
 
-    # Implement all the constraints, as defined in the configs
-    # Bus self-sufficiency constraint
-    if configs["constraints"]["bus_self_sufficiency"]["enable"]:
-        constr_bus_self_sufficiency(final_brownfield, 
-                                    min_self_sufficiency = configs["constraints"]["bus_self_sufficiency"]["fraction"])
-    
-    # Bus self-sufficiency constraint, individually set
-    if configs["constraints"]["bus_individual_self_sufficiency"]["enable"]:
-        constr_bus_individual_self_sufficiency(final_brownfield)
-    
-    # Policy constraints
-    if configs["constraints"]["policy_targets"]["enable"]:
-        constr_policy_targets(final_brownfield, 
-                              stock_model = run["stock_model"])
-        
-    # Minimum annual generation constraint
-    if configs["constraints"]["min_annual_generation"]["enable"]:
-        constr_min_annual_generation(final_brownfield, 
-                                    lhs_generator = configs["constraints"]["min_annual_generation"]["generator"],
-                                    rhs_min_generation = configs["constraints"]["min_annual_generation"]["fraction"])
-    
-    # Minimum annual link utlisation constraint
-    if configs["constraints"]["min_utilisation_links"]["enable"]:
-        constr_min_annual_utilisation_links(final_brownfield,
-                                            carriers = configs["constraints"]["min_utilisation_links"]["carriers"])
-    
-    # Maximum annual link utlisation constraint
-    if configs["constraints"]["max_utilisation_links"]["enable"]:
-        constr_max_annual_utilisation_links(final_brownfield,
-                                            carriers = configs["constraints"]["max_utilisation_links"]["carriers"])
-
-    # Minimum annual utilisation constraint on a generator level
-    if configs["constraints"]["min_utilisation_generator"]["enable"]:
-        constr_min_annual_utilisation_generator(final_brownfield,
-                                                carriers = configs["constraints"]["min_utilisation_generator"])
-    
-    # Maximum annual utilisation constraint on a generator level
-    if configs["constraints"]["max_utilisation_generator"]["enable"]:
-        constr_max_annual_utilisation_generator(final_brownfield,
-                                                carriers = configs["constraints"]["max_utilisation_generator"])
-
-    # Maximum annual utilisation constraint
-    if configs["constraints"]["max_utilisation"]["enable"]:
-        constr_max_annual_utilisation(final_brownfield, 
-                                      max_utilisation = configs["constraints"]["max_utilisation"]["fraction"],
-                                      carriers = configs["constraints"]["max_utilisation"]["carriers"])
-
-    # Cofiring CCS generation constraint
-    if configs["constraints"]["cofiring_ccs_gen"]["enable"]:
-        constr_cofiring_ccs_generation_join_plant(final_brownfield, 
-                                                clean_generator = configs["constraints"]["cofiring_ccs_gen"]["clean_generator"],
-                                                fossil_generator = configs["constraints"]["cofiring_ccs_gen"]["fossil_generator"])
-    
     final_brownfield.optimize(solver_name=configs["global_vars"]["solver"])
     return final_brownfield
 
@@ -152,7 +86,7 @@ def run_scenarios(configs):
         path_to_run_dir = os.path.join(
             configs["paths"]["output_model_runs"], run["name"]
         )
-        postprocess.plot_results(path_to_run_dir)
+        postprocess.plot_results(path_to_run_dir,run["nodes_with_ci_load"][0])
     print("*" * 100)
 
 

@@ -4,20 +4,6 @@ import sys
 import pandas as pd
 import pypsa
 
-from tz_pypsa.constraints import (
-    constr_cumulative_p_nom,
-    constr_bus_self_sufficiency,
-    constr_bus_individual_self_sufficiency,
-    constr_min_annual_generation,
-    constr_policy_targets,
-    constr_max_annual_utilisation,
-    constr_min_annual_utilisation_links,
-    constr_max_annual_utilisation_links,
-    constr_min_annual_utilisation_generator,
-    constr_max_annual_utilisation_generator,
-    constr_cofiring_ccs_generation_join_plant
-)
-
 from src import brownfield, cfe, helpers, postprocess
 
 
@@ -123,60 +109,8 @@ def RunBrownfieldSimulation(run, configs):
 
     # lp_model = N_BROWNFIELD.optimize.create_model()
     N_BROWNFIELD.optimize.create_model()
+    brownfield.ApplyBrownfieldConstraints(N_BROWNFIELD, run, configs)
     
-    # Implement all the constraints, as defined in the configs
-    # Bus self-sufficiency constraint
-    if configs["constraints"]["bus_self_sufficiency"]["enable"]:
-        constr_bus_self_sufficiency(N_BROWNFIELD, 
-                                    min_self_sufficiency = configs["constraints"]["bus_self_sufficiency"]["fraction"])
-    
-    # Bus self-sufficiency constraint, individually set
-    if configs["constraints"]["bus_individual_self_sufficiency"]["enable"]:
-        constr_bus_individual_self_sufficiency(N_BROWNFIELD)
-    
-    # Policy constraints
-    if configs["constraints"]["policy_targets"]["enable"]:
-        constr_policy_targets(N_BROWNFIELD, 
-                              stock_model = run["stock_model"])
-        
-    # Minimum annual generation constraint
-    if configs["constraints"]["min_annual_generation"]["enable"]:
-        constr_min_annual_generation(N_BROWNFIELD, 
-                                    lhs_generator = configs["constraints"]["min_annual_generation"]["generator"],
-                                    rhs_min_generation = configs["constraints"]["min_annual_generation"]["fraction"])
-    
-    # Minimum annual link utlisation constraint
-    if configs["constraints"]["min_utilisation_links"]["enable"]:
-        constr_min_annual_utilisation_links(N_BROWNFIELD,
-                                            carriers = configs["constraints"]["min_utilisation_links"]["carriers"])
-    
-    # Maximum annual link utlisation constraint
-    if configs["constraints"]["max_utilisation_links"]["enable"]:
-        constr_max_annual_utilisation_links(N_BROWNFIELD,
-                                            carriers = configs["constraints"]["max_utilisation_links"]["carriers"])
-
-    # Minimum annual utilisation constraint on a generator level
-    if configs["constraints"]["min_utilisation_generator"]["enable"]:
-        constr_min_annual_utilisation_generator(N_BROWNFIELD,
-                                                carriers = configs["constraints"]["min_utilisation_generator"])
-    
-    # Maximum annual utilisation constraint on a generator level
-    if configs["constraints"]["max_utilisation_generator"]["enable"]:
-        constr_max_annual_utilisation_generator(N_BROWNFIELD,
-                                                carriers = configs["constraints"]["max_utilisation_generator"])
-
-    # Maximum annual utilisation constraint
-    if configs["constraints"]["max_utilisation"]["enable"]:
-        constr_max_annual_utilisation(N_BROWNFIELD, 
-                                      max_utilisation = configs["constraints"]["max_utilisation"]["fraction"],
-                                      carriers = configs["constraints"]["max_utilisation"]["carriers"])
-
-    # Cofiring CCS generation constraint
-    if configs["constraints"]["cofiring_ccs_gen"]["enable"]:
-        constr_cofiring_ccs_generation_join_plant(N_BROWNFIELD, 
-                                                clean_generator = configs["constraints"]["cofiring_ccs_gen"]["clean_generator"],
-                                                fossil_generator = configs["constraints"]["cofiring_ccs_gen"]["fossil_generator"])
-
     N_BROWNFIELD.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
 
     brownfield_path = os.path.join(
@@ -273,8 +207,13 @@ def RunRES100(
         # ---------------------------------------------------------------
         N_RES_100.model.add_constraints(
             CI_GridExport.sum()
-            <= CI_Demand * configs["global_vars"]["maximum_excess_export"],
+            <= CI_Demand * configs["global_vars"]["maximum_excess_export_res100"],
         )
+
+        # Apply all the original brownfield constraints
+        # ---------------------------------------------------------------
+        brownfield.ApplyBrownfieldConstraints(N_RES_100, run, configs)
+
     N_RES_100.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
 
     N_RES_100.export_to_netcdf(
@@ -339,11 +278,11 @@ def RunCFE(
         run["nodes_with_ci_load"],
         ci_identifier,
         CFE_Score,
-        configs["global_vars"]["maximum_excess_export"],
+        configs["global_vars"]["maximum_excess_export_cfe"],
     )
 
-    # other brownfield constraints also need to be applied here
-    # in the same way that CFE constraints are applied
+    # (Re)apply original brownfield constraints
+    brownfield.ApplyBrownfieldConstraints(N_CFE, run, configs)
 
     # optimise
     N_CFE.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
@@ -365,9 +304,9 @@ def RunCFE(
             run["nodes_with_ci_load"],
             ci_identifier,
             CFE_Score,
-            configs["global_vars"]["maximum_excess_export"],
+            configs["global_vars"]["maximum_excess_export_cfe"],
         )
-
+        print(f"Computing hourly matching scenario (CFE: {int(CFE_Score*100)}) iteration {count}")
         N_CFE.optimize.solve_model(solver_name=configs["global_vars"]["solver"])
         GridCFE = GetGridCFE(N_CFE, ci_identifier)
         count += 1
@@ -438,12 +377,12 @@ if __name__ == "__main__":
         # 100% RES SIMULATION
         RES_TARGET = 100
         print(f"Computing annual matching scenario (RES Target: {int(RES_TARGET)}%)...")
-        RunRES100(N_BROWNFIELD, ci_identifier=ci_identifier)
+        RunRES100(N_BROWNFIELD, ci_identifier=ci_identifier, run=run, configs=configs)
 
         # Compute hourly matching scenarios
         for CFE_Score in run["cfe_score"]:
             print(f"Computing hourly matching scenario (CFE: {int(CFE_Score*100)}...")
-            RunCFE(N_BROWNFIELD, CFE_Score=CFE_Score, ci_identifier=ci_identifier)
+            RunCFE(N_BROWNFIELD, CFE_Score=CFE_Score, ci_identifier=ci_identifier, run=run, configs=configs)
 
     # ----------------------------------------------------------------------
     # MAKE PLOTS FOR EACH SCENARIO

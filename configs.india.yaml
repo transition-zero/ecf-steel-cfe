@@ -21,7 +21,8 @@ global_vars:
   ci_label: C&I # this is a unique identifier for all CFE attributes in the network
   enable_fossil_charging: false # if true, the model will allow batteries to be charged by fossil fuels
   set_global_constraints: false # if true, the model will set global constraints from tza-pypsa (keep False here)
-  maximum_excess_export: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid
+  maximum_excess_export_cfe: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid under CFE scenarios
+  maximum_excess_export_res100: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid under annual matching
 
 constraints:
   bus_self_sufficiency: # constraint is set by user
@@ -84,7 +85,7 @@ model_runs:
     cfe_score:
       - 0.6
       # - 0.7
-      # - 0.8
+      - 0.8
       # - 0.9
       # - 1.0
     ci_load_fraction: 0.05 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
