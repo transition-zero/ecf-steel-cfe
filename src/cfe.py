@@ -154,7 +154,7 @@ def PrepareNetworkForCFE(
                     network
                     .generators
                     .loc[ 
-                        network.generators.type == technology
+                        ((network.generators["type"] == technology) & (network.generators["bus"] == bus) & (network.generators["p_nom_extendable"] == True))
                     ]
                     .groupby(by='type')
                     .first()
@@ -166,7 +166,7 @@ def PrepareNetworkForCFE(
 
                 # get capacity factors if technology is renewable, ensuring correct technology and bus is used
                 generator_names = network.generators.index[
-                    (network.generators["type"] == technology) & (network.generators["bus"] == bus)
+                    ((network.generators["type"] == technology) & (network.generators["bus"] == bus) & (network.generators["p_nom_extendable"] == True))
                 ]
                 cf = network.generators_t.p_max_pu[generator_names]
                 if cf.empty:
