@@ -194,14 +194,14 @@ def run_full_cfe(config):
 @cli.command()
 @click.option("--config", default="configs.yaml", help="Path to the configuration file")
 def run_plots(
-    configs,
+    config,
 ):
-    configs = helpers.load_configs(configs)
-    for run in configs["model_runs"]:
+    config = helpers.load_configs(config)
+    for run in config["model_runs"]:
         path_to_run_dir = os.path.join(
-            configs["paths"]["output_model_runs"], run["name"]
+            config["paths"]["output_model_runs"], run["name"]
         )
-        postprocess.plot_results(path_to_run_dir)
+        postprocess.plot_results(path_to_run_dir,config["model_runs"][0]["nodes_with_ci_load"][0])
 
 
 if __name__ == "__main__":
