@@ -14,7 +14,7 @@ paths:
   output_model_runs: "outputs/model_runs/" # path to save model run outputs
   path_to_model: '/tza-pypsa/stock_models/Japan'
 global_vars:
-  years: 2030 # year of the model run
+  year: 2030 # year of the model run
   frequency: 1h # time resolution of the model run (should be 1h for CFE)
   timesteps: 8760 # number of timesteps in the model run (e.g., 24 = 1 day)
   solver: gurobi # solver used to solve the optimization problem
@@ -263,9 +263,12 @@ model_runs:
     nodes_with_ci_load:
       - JPN03
     cfe_score:
+      - 0.8
       - 0.9
       - 1.0
     ci_load_fraction: 0.04 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+    allow_generation_expansion: false # if true, the model will allow generation expansion
+    allow_storage_expansion: false # if true, the model will allow storage expansion
     allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
     backstop: true # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
 
