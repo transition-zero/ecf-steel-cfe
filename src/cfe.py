@@ -233,6 +233,9 @@ def PrepareNetworkForCFE(
                     build_year=params['build_year'],
                     carrier=params['carrier'],
                     capital_cost=params['capital_cost'],
+                    efficiency_store=params['efficiency_store'],
+                    efficiency_dispatch=params['efficiency_dispatch'],
+                    standing_loss=params['standing_loss'],
                 )
                 
                 '''
