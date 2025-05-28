@@ -169,20 +169,20 @@ def get_ci_generation(n : pypsa.Network) -> pd.DataFrame:
     })
     return ci_generation_df
 
-def get_total_ci_procurement_cost(n : pypsa.Network, n_reference: pypsa.Network) -> pd.DataFrame:
+def get_total_ci_procurement_cost(n : pypsa.Network) -> pd.DataFrame:
     '''Returns the total annual system cost in M$ for each C&I procured component and carrier
     '''
     return (
         (
-            n.statistics()['Capital Expenditure'] 
-            + n.statistics()['Operational Expenditure']
-            - n_reference.statistics()['Capital Expenditure']
-            - n_reference.statistics()['Operational Expenditure']
+            n.statistics(groupby=["bus","carrier"])['Capital Expenditure'].fillna(0) 
+            + n.statistics(groupby=["bus","carrier"])['Operational Expenditure'].fillna(0)
         )
         .div(1e6)
         .round(2)
         .reset_index()
-        .rename(columns={'level_0' : 'component','level_1' : 'carrier', 0: 'annual_system_cost [M$]'})
+        .query("level_1.str.contains('C&I')")
+        .drop(columns=['level_1'])
+        .rename(columns={'level_0' : 'component','level_2' : 'carrier', 0: 'annual_system_cost [M$]'})
     )
 
 
