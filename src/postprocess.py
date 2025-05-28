@@ -73,7 +73,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         expanded_capacity
         .loc[expanded_capacity['Scenario'] == '100% RES']
         .drop(['Scenario','CFE Score'], axis=1)
-        .query(" ~carrier.isin(['Transmission']) ")
+        .query(" ~carrier.isin(['Transmission','AC']) ")
         .pivot_table(columns='carrier', values='capacity')
         .div(1e3)
         .rename(index={'capacity':'100% RES'})
@@ -82,7 +82,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         expanded_capacity
         .query("Scenario.str.contains('CFE')")
         .sort_values('CFE Score')
-        .query(" ~carrier.isin(['Transmission']) ")
+        .query(" ~carrier.isin(['Transmission','AC']) ")
         .pivot_table(index='CFE Score', columns='carrier', values='capacity')
         .div(1e3)
     )
@@ -408,7 +408,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         ci_procurement_cost
         .loc[ci_procurement_cost['Scenario'] == '100% RES']
         .drop(['Scenario','CFE Score'], axis=1)
-        .query(" ~carrier.isin(['Transmission']) ")
+        .query(" ~carrier.isin(['Transmission','AC']) ")
         .query("carrier in @ci_carriers")
         .pivot_table(columns='carrier', values='annual_system_cost [M$]')
         .rename(index={'annual_system_cost [M$]':'100% RES'})
@@ -418,7 +418,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         ci_procurement_cost
         .query("Scenario.str.contains('CFE')")
         .sort_values('CFE Score')
-        .query(" ~carrier.isin(['Transmission']) ")
+        .query(" ~carrier.isin(['Transmission','AC']) ")
         .query("carrier in @ci_carriers")
         .pivot_table(index='CFE Score', columns='carrier', values='annual_system_cost [M$]')
     )
@@ -1282,7 +1282,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     #     ci_procurement_cost
     #     .loc[ci_procurement_cost['Scenario'] == '100% RES']
     #     .drop(['Scenario','CFE Score'], axis=1)
-    #     .query(" ~carrier.isin(['Transmission']) ")
+    #     .query(" ~carrier.isin(['Transmission','AC']) ")
     #     .query("carrier in @ci_carriers")
     #     .pivot_table(columns='carrier', values='annual_system_cost [M$]')
     #     .rename(index={'annual_system_cost [M$]':'100% RES'})
@@ -1292,7 +1292,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     #     ci_procurement_cost
     #     .query("Scenario.str.contains('CFE')")
     #     .sort_values('CFE Score')
-    #     .query(" ~carrier.isin(['Transmission']) ")
+    #     .query(" ~carrier.isin(['Transmission','AC']) ")
     #     .query("carrier in @ci_carriers")
     #     .pivot_table(index='CFE Score', columns='carrier', values='annual_system_cost [M$]')
     #     .assign(Total=lambda df: df.sum(axis=1))
