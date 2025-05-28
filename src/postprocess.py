@@ -383,8 +383,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         pd.concat(
             [
                 cget.get_total_ci_procurement_cost(
-                    solved_networks[k],
-                    solved_networks['n_bf']
+                    solved_networks[k]
                 )
                 # for k, n in solved_networks.items()
                 # solved_networks[k]
@@ -1257,8 +1256,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     #     pd.concat(
     #         [
     #             cget.get_total_ci_procurement_cost(
-    #                 solved_networks[k],
-    #                 solved_networks['n_bf']
+    #                 solved_networks[k]
     #             )
     #             # for k, n in solved_networks.items()
     #             # solved_networks[k]
@@ -1447,9 +1445,13 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     )
 
     # ------------------------------------------------------------------
+    # Unit cost of electricity (currency/MWh)
+
+
+    # ------------------------------------------------------------------
     # HEATMAP OF CFE SCORE
     print('Creating heatmap of CFE score')
-    ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030'],solved_networks['n_bf']).query("carrier.isin(@ci_carriers)")['annual_system_cost [M$]'].sum() / 1e3
+    ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030']).query("carrier.isin(@ci_carriers)")['annual_system_cost [M$]'].sum() / 1e3
     for k in solved_networks.keys():
         # get networks
         n_reference = solved_networks['n_bf'].copy()
