@@ -312,6 +312,10 @@ def RunCFE(
         GridSupplyCFE[f"iteration_{count}"].sum()
         - GridSupplyCFE[f"iteration_{count-1}"].sum()
     ) > 0.01 and count < max_iterations:
+        # Remove constraints from the previous iteration before applying for the current iteration
+        N_CFE.model.remove_constraints(
+            [c for c in N_CFE.model.constraints if "cfe-constraint" in c]
+        )
         N_CFE = cfe.apply_cfe_constraint(
             N_CFE,
             GridCFE,
