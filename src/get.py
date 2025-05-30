@@ -26,7 +26,22 @@ def get_ci_cost_summary(n : pypsa.Network) -> pd.DataFrame:
         #.reset_index()
     )
 
+    ci_generator_p_max_pu = (
+        n.generators_t.p_max_pu.transpose().loc[
+            n.generators_t.p_max_pu.transpose().index.str.contains('C&I')
+        ]
+        .transpose()
+        # [['p_max_pu']]
+        #.reset_index()
+    )
+
     ci_generator_costs['dispatch'] = n.generators_t.p[ ci_generator_costs.index ].sum()
+    ci_generator_costs['potential_dispatch'] = (
+        ci_generator_costs.p_nom_opt[ ci_generator_costs.index ] 
+        * ci_generator_p_max_pu[ ci_generator_costs.index ] 
+        ).sum()
+    ci_generator_costs['curtailment'] = ci_generator_costs['potential_dispatch'] - ci_generator_costs['dispatch']
+    ci_generator_costs['curtailment_perc'] = ci_generator_costs['curtailment']/ci_generator_costs['potential_dispatch']
 
     # storage
     ci_storage_costs = (
@@ -70,7 +85,7 @@ def get_ci_cost_summary(n : pypsa.Network) -> pd.DataFrame:
     # calculate export revenues
     export_links_t = n.links_t.p0.filter(regex='C&I').filter(regex='Export').sum(axis=1)
     export_link_p = n.buses_t.marginal_price.filter(regex='^(?!.*C&I)').mean(axis=1)
-    export_revenue = -( export_links_t * import_link_p ).sum().sum()
+    export_revenue = -( export_links_t * export_link_p ).sum().sum()
 
     # append to df
     df.loc[ df.index.str.contains('Export'), 'export_revenue' ] = export_revenue

@@ -1446,68 +1446,114 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
 
     # ------------------------------------------------------------------
     # Unit cost of electricity (currency/MWh)
+    print('Creating unit cost of electricity plot')
+
+    test = (
+        pd.concat(
+            [
+                cget.get_ci_cost_summary(
+                    solved_networks[k]
+                )
+                .assign(name=k)
+                .assign(unit_cost_rupees = lambda df: df['unit_cost'] * 85 * 1e-3)
+                for k, n in solved_networks.items()
+            ]
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name',
+        )
+        .drop('name', axis=1)
+        # .groupby(['Scenario', 'CFE Score'], as_index=False, dropna=False)['annual_system_cost [M$]'].sum()
+        # .query("capacity != 0")
+    )
+    # print(test[test['CFE Score'] == 80.0])
+    test.to_csv('test.csv')
+
+    # pull out relevant data
+    # res_ci_costs = (
+    #     ci_unit_cost
+    #     .loc[ci_unit_cost['Scenario'] == '100% RES']
+    #     .assign(unit_cost = lambda df: df['annual_system_cost [M$]'] / 8760)
+    #     # .drop(['Scenario','CFE Score'], axis=1)
+    #     # .query(" ~carrier.isin(['Transmission','AC']) ")
+    #     # .query("carrier in @ci_carriers")
+    #     # .pivot_table(columns='carrier', values='annual_system_cost [M$]')
+    #     .rename(index={'annual_system_cost [M$]':'100% RES'})
+    # )
+    # print(res_ci_costs)
+
+    # cfe_ci_costs = (
+    #     ci_procurement_cost
+    #     .query("Scenario.str.contains('CFE')")
+    #     .sort_values('CFE Score')
+    #     .query(" ~carrier.isin(['Transmission','AC']) ")
+    #     .query("carrier in @ci_carriers")
+    #     .pivot_table(index='CFE Score', columns='carrier', values='annual_system_cost [M$]')
+    # )
+    # print(cfe_ci_costs)
 
 
-    # ------------------------------------------------------------------
-    # HEATMAP OF CFE SCORE
-    print('Creating heatmap of CFE score')
-    ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030']).query("carrier.isin(@ci_carriers)")['annual_system_cost [M$]'].sum() / 1e3
-    for k in solved_networks.keys():
-        # get networks
-        n_reference = solved_networks['n_bf'].copy()
-        n = solved_networks[k].copy()
-        # init fig
-        fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, fields_to_plot=ci_carriers, ci_identifier='C&I')
+    # # ------------------------------------------------------------------
+    # # HEATMAP OF CFE SCORE
+    # print('Creating heatmap of CFE score')
+    # ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030']).query("carrier.isin(@ci_carriers)")['annual_system_cost [M$]'].sum() / 1e3
+    # for k in solved_networks.keys():
+    #     # get networks
+    #     n_reference = solved_networks['n_bf'].copy()
+    #     n = solved_networks[k].copy()
+    #     # init fig
+    #     fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, fields_to_plot=ci_carriers, ci_identifier='C&I')
 
-        # set fname
-        if 'n_bf' in k:
-            fname = '2030 Reference Scenario'
-            ax0.set_title(f'{fname}', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
-        elif 'n_am' in k:
-            fname = '100% Annual Matching'
-            ax0.set_title(f'{fname}', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
-        elif 'n_hm' in k:
-            fname = k.split('_')[2]
-            cfe_score = int( fname.replace('CFE','') )
-            ax0.set_title(f'{cfe_score}% clean procurement: hour-by-hour\n\n', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
+    #     # set fname
+    #     if 'n_bf' in k:
+    #         fname = '2030 Reference Scenario'
+    #         ax0.set_title(f'{fname}', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
+    #     elif 'n_am' in k:
+    #         fname = '100% Annual Matching'
+    #         ax0.set_title(f'{fname}', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
+    #     elif 'n_hm' in k:
+    #         fname = k.split('_')[2]
+    #         cfe_score = int( fname.replace('CFE','') )
+    #         ax0.set_title(f'{cfe_score}% clean procurement: hour-by-hour\n\n', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
         
-        print(f'Plotting {fname} heatmap...')
+    #     print(f'Plotting {fname} heatmap...')
 
-        # save plot
-        fig.savefig(
-            os.path.join(
-                path_to_run_dir, f'results/hmap_score_{fname}.png'
-            ),
-            bbox_inches='tight'
-        )
+    #     # save plot
+    #     fig.savefig(
+    #         os.path.join(
+    #             path_to_run_dir, f'results/hmap_score_{fname}.png'
+    #         ),
+    #         bbox_inches='tight'
+    #     )
 
-    # ------------------------------------------------------------------
-    # MONTHLY HEATMAP OF CFE SCORE
-    print('Creating monthly heatmap of CFE score')
-    for k in solved_networks.keys():
-        n = solved_networks[k].copy()
+    # # ------------------------------------------------------------------
+    # # MONTHLY HEATMAP OF CFE SCORE
+    # print('Creating monthly heatmap of CFE score')
+    # for k in solved_networks.keys():
+    #     n = solved_networks[k].copy()
 
-        fig, ax = cplt.plot_monthly_cfe_hmap(n, ci_identifier='C&I')
+    #     fig, ax = cplt.plot_monthly_cfe_hmap(n, ci_identifier='C&I')
 
-        # set fname
-        if 'n_bf' in k:
-            fname = '2030 Reference Scenario'
-            fig.suptitle(f'{fname}', y=0.95, fontsize=14)
-        elif 'n_am' in k:
-            fname = '100% Annual Matching'
-            fig.suptitle(f'{fname}', y=0.95, fontsize=14)
-        elif 'n_hm' in k:
-            fname = k.split('_')[2]
-            cfe_score = int( fname.replace('CFE','') )
-            fig.suptitle(f'{cfe_score}% clean procurement: hour-by-hour\n\n', y=0.95, fontproperties=work_sans_font_medium, fontsize=14)
+    #     # set fname
+    #     if 'n_bf' in k:
+    #         fname = '2030 Reference Scenario'
+    #         fig.suptitle(f'{fname}', y=0.95, fontsize=14)
+    #     elif 'n_am' in k:
+    #         fname = '100% Annual Matching'
+    #         fig.suptitle(f'{fname}', y=0.95, fontsize=14)
+    #     elif 'n_hm' in k:
+    #         fname = k.split('_')[2]
+    #         cfe_score = int( fname.replace('CFE','') )
+    #         fig.suptitle(f'{cfe_score}% clean procurement: hour-by-hour\n\n', y=0.95, fontproperties=work_sans_font_medium, fontsize=14)
 
-        # save plot
-        fig.savefig(
-            os.path.join(
-                path_to_run_dir, f'results/monthly_hmap_score_{fname}.png'
-            ),
-            bbox_inches='tight'
-        )
+    #     # save plot
+    #     fig.savefig(
+    #         os.path.join(
+    #             path_to_run_dir, f'results/monthly_hmap_score_{fname}.png'
+    #         ),
+    #         bbox_inches='tight'
+    #     )
 
 
 def aggregate_capacity(
