@@ -1365,7 +1365,6 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     print('Creating C&I energy balance plot')
 
     fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
-    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
 
     ci_procurement = (
         pd.concat(
@@ -1383,7 +1382,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         ci_procurement
         .loc[ci_procurement['Scenario'] == '100% RES']
         .drop(['Scenario','CFE Score'], axis=1)
-        .mul(100)
+        .mul(1e-6)
         .rename(index={0:'100% RES'})
     )
 
@@ -1393,7 +1392,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         .sort_values('CFE Score')
         .drop(['Scenario'], axis=1)
         .set_index('CFE Score')
-        .mul(100)
+        .mul(1e-6)
     )
 
     # save df
@@ -1404,10 +1403,18 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
         index=True
     )
 
+    # also save for later use
+    energy_balance_df = pd.DataFrame(pd.concat([res, cfe], axis=0))
+    energy_balance_df.index.name = 'Scenario'
+    energy_balance_df.index = [
+        idx if idx == '100% RES' else f"CFE-{int(round(float(idx), 0))}"
+        for idx in energy_balance_df.index
+    ]
+    
     res.plot(kind='bar', stacked=True, ax=ax0, legend=False)
     cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True)
 
-    ax0.set_ylabel('C&I Procurement Mix\n[% of load]', fontproperties=work_sans_font)
+    ax0.set_ylabel('C&I Procurement Mix (TWh)', fontproperties=work_sans_font)
     ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
     for ax in [ax0, ax1]:
@@ -1448,14 +1455,18 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     # Unit cost of electricity (currency/MWh)
     print('Creating unit cost of electricity plot')
 
-    test = (
+    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
+
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+
+    cost_summary = (
         pd.concat(
             [
                 cget.get_ci_cost_summary(
                     solved_networks[k]
                 )
                 .assign(name=k)
-                .assign(unit_cost_rupees = lambda df: df['unit_cost'] * 85 * 1e-3)
+                .assign(ci_load = n.loads_t.p.filter(regex='C&I').sum().sum())
                 for k, n in solved_networks.items()
             ]
         )
@@ -1464,96 +1475,266 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
             'name',
         )
         .drop('name', axis=1)
-        # .groupby(['Scenario', 'CFE Score'], as_index=False, dropna=False)['annual_system_cost [M$]'].sum()
-        # .query("capacity != 0")
+        .sort_values('CFE Score')
+        .merge(ci_carriers, left_on='carrier', right_index=True, how='left')
+        .assign(carrier=lambda df: df['nice_name'].combine_first(df['carrier']))
     )
-    # print(test[test['CFE Score'] == 80.0])
-    test.to_csv('test.csv')
+    cost_summary['CFE Score'] = cost_summary['CFE Score'].fillna(0)
 
-    # pull out relevant data
-    # res_ci_costs = (
-    #     ci_unit_cost
-    #     .loc[ci_unit_cost['Scenario'] == '100% RES']
-    #     .assign(unit_cost = lambda df: df['annual_system_cost [M$]'] / 8760)
-    #     # .drop(['Scenario','CFE Score'], axis=1)
-    #     # .query(" ~carrier.isin(['Transmission','AC']) ")
-    #     # .query("carrier in @ci_carriers")
-    #     # .pivot_table(columns='carrier', values='annual_system_cost [M$]')
-    #     .rename(index={'annual_system_cost [M$]':'100% RES'})
-    # )
-    # print(res_ci_costs)
+    unit_cost_denominator = (
+        cost_summary[cost_summary.index.str.contains('Grid Imports|Grid Exports')]
+        .loc[:, ['dispatch', 'ci_load', 'Scenario', 'CFE Score']]
+        .reset_index()
+        .rename(columns={'index': 'flow'})
+        .pivot_table(index=['CFE Score', 'Scenario', 'ci_load'], columns='flow', values='dispatch')
+        .reset_index()
+        .rename(columns=lambda x: 'grid_exports' if 'Grid Exports' in str(x) else x)
+        .rename(columns=lambda x: 'grid_imports' if 'Grid Imports' in str(x) else x)
+        .rename_axis(columns=None)
+    )
 
-    # cfe_ci_costs = (
-    #     ci_procurement_cost
-    #     .query("Scenario.str.contains('CFE')")
-    #     .sort_values('CFE Score')
-    #     .query(" ~carrier.isin(['Transmission','AC']) ")
-    #     .query("carrier in @ci_carriers")
-    #     .pivot_table(index='CFE Score', columns='carrier', values='annual_system_cost [M$]')
-    # )
-    # print(cfe_ci_costs)
+    unit_cost = (
+        cost_summary[~cost_summary.index.str.contains('Charge|Discharge')]
+        .assign(carrier=lambda df: df['carrier'].where(~df.index.str.contains('Grid Exports'), 'Grid Exports'))
+        .assign(carrier=lambda df: df['carrier'].where(~df.index.str.contains('Grid Imports'), 'Grid Imports'))
+        .groupby(['carrier', 'CFE Score', 'Scenario'], dropna=False)[['capex', 'opex', 'import_cost', 'export_revenue']].sum()
+        .assign(total_costs=lambda df: df[['capex', 'opex', 'import_cost', 'export_revenue']].sum(axis=1))
+        .reset_index()
+        .merge(unit_cost_denominator, left_on = ['Scenario','CFE Score'], right_on = ['Scenario','CFE Score'])
+        .sort_values(['CFE Score','Scenario','carrier'])
+        # this is the unit cost considering the cost and revenue of imports and exports
+        # the PPA offtaker bears the burden and revenue f exporting to the grid
+        .assign(unit_cost_a = lambda df: df['total_costs'] / (df['ci_load'] + df['grid_exports']))
+        # # unit cost ignoring import costs and export revenue
+        # # it is scaled by the proportion of c&i load met and energy exported
+        # # the PPA offtaker should not incur costs of electricity exported to the grid
+        .assign(unit_cost_b = lambda df: ((df['capex'] + df['opex']) *
+                                          (df['ci_load'] - df['grid_imports']) *
+                                          (1/(df['ci_load'] - df['grid_imports'] + df['grid_exports'])**2))
+                                          )
+    )
 
+    res_unit_cost = (
+        unit_cost
+        .loc[unit_cost['unit_cost_a'] != 0]
+        .loc[unit_cost['Scenario'] == '100% RES']
+        .loc[:, ['CFE Score', 'carrier', 'unit_cost_a']]
+        .pivot_table(index='CFE Score', columns='carrier', values='unit_cost_a')
+        .assign(**{'Net Cost': lambda df: df.sum(axis=1)})
+        .rename(index={0:'100% RES'})
+        # .set_index('100% RES')
+    )
 
-    # # ------------------------------------------------------------------
-    # # HEATMAP OF CFE SCORE
-    # print('Creating heatmap of CFE score')
-    # ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030']).query("carrier.isin(@ci_carriers)")['annual_system_cost [M$]'].sum() / 1e3
-    # for k in solved_networks.keys():
-    #     # get networks
-    #     n_reference = solved_networks['n_bf'].copy()
-    #     n = solved_networks[k].copy()
-    #     # init fig
-    #     fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, fields_to_plot=ci_carriers, ci_identifier='C&I')
+    cfe_unit_cost = (
+        unit_cost
+        .loc[unit_cost['unit_cost_a'] != 0]
+        .query("Scenario.str.contains('CFE')")
+        .sort_values('CFE Score')
+        .loc[:, ['CFE Score', 'carrier', 'unit_cost_a']]
+        .pivot_table(index='CFE Score', columns='carrier', values='unit_cost_a')
+        .assign(**{'Net Cost': lambda df: df.sum(axis=1)})
+    )
 
-    #     # set fname
-    #     if 'n_bf' in k:
-    #         fname = '2030 Reference Scenario'
-    #         ax0.set_title(f'{fname}', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
-    #     elif 'n_am' in k:
-    #         fname = '100% Annual Matching'
-    #         ax0.set_title(f'{fname}', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
-    #     elif 'n_hm' in k:
-    #         fname = k.split('_')[2]
-    #         cfe_score = int( fname.replace('CFE','') )
-    #         ax0.set_title(f'{cfe_score}% clean procurement: hour-by-hour\n\n', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
+    # save df
+    (pd.concat([res_unit_cost, cfe_unit_cost], axis=0)).to_csv(os.path.join(path_to_run_dir, 'results/ci_electricity_unit_cost_a.csv'), index=True)
+
+    colors = cplt.tech_color_palette()
+    res_unit_cost.drop(columns=['Net Cost'], errors='ignore').plot(
+        kind='bar', stacked=True, ax=ax0, legend=False,
+        color=[colors.get(x, '#333333') for x in res_unit_cost.columns if x != 'Net Cost']
+    )
+    cfe_unit_cost.drop(columns=['Net Cost'], errors='ignore').plot(
+        kind='bar', stacked=True, ax=ax1, legend=True,
+        color=[colors.get(x, '#333333') for x in cfe_unit_cost.columns if x != 'Net Cost']
+    )
+    
+    ax0.scatter(
+        x=res_unit_cost.index,
+        y=res_unit_cost['Net Cost'],
+        color='black',
+        marker='x',
+        s=40,
+        label='Net Cost'
+    )
+
+    ax1.scatter(
+        x=np.arange(len(cfe_unit_cost)),
+        y=cfe_unit_cost['Net Cost'],
+        color='black',
+        marker='x',
+        s=40,
+        label='Net Cost'
+    )
+    
+    ax0.set_ylabel('Unit Cost (USD/MWh)', fontproperties=work_sans_font)
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+    ax0.set_xlabel('')
+
+    for ax in [ax0, ax1]:
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(work_sans_font)
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        sns.despine(ax=ax, left=False)
+
+    # Remove legend title and box, make sure labels are displayed in the same order as in the plot
+    handles, labels = ax1.get_legend_handles_labels()
+    order = [cfe_unit_cost.columns.tolist().index(label) for label in labels if label in cfe_unit_cost.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+
+    legend = ax1.legend(sorted_handles, sorted_labels, bbox_to_anchor=(1, 0.5), ncol=1)
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
+
+    # Adjust horizontal space between ax0 and ax1
+    fig.subplots_adjust(wspace=0.1)
+
+    # save plot
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/ci_electricity_unit_cost_a.png'
+        ),
+        bbox_inches='tight'
+    )
+
+    ### print off alternative unit cost (unit cost b)
+
+    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
+
+    res_unit_cost = (
+        unit_cost
+        .loc[unit_cost['unit_cost_b'] != 0]
+        .loc[unit_cost['Scenario'] == '100% RES']
+        .loc[:, ['CFE Score', 'carrier', 'unit_cost_b']]
+        .pivot_table(index='CFE Score', columns='carrier', values='unit_cost_b')
+        .rename(index={0:'100% RES'})
+        # .set_index('100% RES')
+    )
+
+    cfe_unit_cost = (
+        unit_cost
+        .loc[unit_cost['unit_cost_b'] != 0]
+        .query("Scenario.str.contains('CFE')")
+        .sort_values('CFE Score')
+        .loc[:, ['CFE Score', 'carrier', 'unit_cost_b']]
+        .pivot_table(index='CFE Score', columns='carrier', values='unit_cost_b')
+        # .set_index('CFE Score')
+    )
+
+    # save df
+    (pd.concat([res_unit_cost, cfe_unit_cost], axis=0)).to_csv(os.path.join(path_to_run_dir, 'results/ci_electricity_unit_cost_b.csv'), index=True)
+
+    colors = cplt.tech_color_palette()
+    res_unit_cost.plot(
+        kind='bar', stacked=True, ax=ax0, legend=False,
+        color=[colors.get(x, '#333333') for x in res_unit_cost.columns]
+    )
+    cfe_unit_cost.plot(
+        kind='bar', stacked=True, ax=ax1, legend=True,
+        color=[colors.get(x, '#333333') for x in cfe_unit_cost.columns]
+    )
+    
+    ax0.set_ylabel('Unit Cost (USD/MWh)', fontproperties=work_sans_font)
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+    ax0.set_xlabel('')
+
+    for ax in [ax0, ax1]:
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(work_sans_font)
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        sns.despine(ax=ax, left=False)
+
+    # Remove legend title and box, make sure labels are displayed in the same order as in the plot
+    handles, labels = ax1.get_legend_handles_labels()
+    order = [cfe_unit_cost.columns.tolist().index(label) for label in labels if label in cfe_unit_cost.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+
+    legend = ax1.legend(sorted_handles, sorted_labels, bbox_to_anchor=(1, 0.5), ncol=1)
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
+
+    # Adjust horizontal space between ax0 and ax1
+    fig.subplots_adjust(wspace=0.1)
+
+    # save plot
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/ci_electricity_unit_cost_b.png'
+        ),
+        bbox_inches='tight'
+    )
+
+    # ------------------------------------------------------------------
+    # HEATMAP OF CFE SCORE
+    print('Creating heatmap of CFE score')
+    ymax = cget.get_total_ci_procurement_cost(solved_networks['n_hm_CFE100_2030']).query("carrier.isin(@ci_carriers)")['annual_system_cost [M$]'].sum() / 1e3
+    for k in solved_networks.keys():
+        # get networks
+        n_reference = solved_networks['n_bf'].copy()
+        n = solved_networks[k].copy()
+        # init fig
+        fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, fields_to_plot=ci_carriers, ci_identifier='C&I')
+
+        # set fname
+        if 'n_bf' in k:
+            fname = '2030 Reference Scenario'
+            ax0.set_title(f'{fname}', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
+        elif 'n_am' in k:
+            fname = '100% Annual Matching'
+            ax0.set_title(f'{fname}', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
+        elif 'n_hm' in k:
+            fname = k.split('_')[2]
+            cfe_score = int( fname.replace('CFE','') )
+            ax0.set_title(f'{cfe_score}% clean procurement: hour-by-hour\n\n', loc='left', fontproperties=work_sans_font_medium, fontsize=14)
         
-    #     print(f'Plotting {fname} heatmap...')
+        print(f'Plotting {fname} heatmap...')
 
-    #     # save plot
-    #     fig.savefig(
-    #         os.path.join(
-    #             path_to_run_dir, f'results/hmap_score_{fname}.png'
-    #         ),
-    #         bbox_inches='tight'
-    #     )
+        # save plot
+        fig.savefig(
+            os.path.join(
+                path_to_run_dir, f'results/hmap_score_{fname}.png'
+            ),
+            bbox_inches='tight'
+        )
 
-    # # ------------------------------------------------------------------
-    # # MONTHLY HEATMAP OF CFE SCORE
-    # print('Creating monthly heatmap of CFE score')
-    # for k in solved_networks.keys():
-    #     n = solved_networks[k].copy()
+    # ------------------------------------------------------------------
+    # MONTHLY HEATMAP OF CFE SCORE
+    print('Creating monthly heatmap of CFE score')
+    for k in solved_networks.keys():
+        n = solved_networks[k].copy()
 
-    #     fig, ax = cplt.plot_monthly_cfe_hmap(n, ci_identifier='C&I')
+        fig, ax = cplt.plot_monthly_cfe_hmap(n, ci_identifier='C&I')
 
-    #     # set fname
-    #     if 'n_bf' in k:
-    #         fname = '2030 Reference Scenario'
-    #         fig.suptitle(f'{fname}', y=0.95, fontsize=14)
-    #     elif 'n_am' in k:
-    #         fname = '100% Annual Matching'
-    #         fig.suptitle(f'{fname}', y=0.95, fontsize=14)
-    #     elif 'n_hm' in k:
-    #         fname = k.split('_')[2]
-    #         cfe_score = int( fname.replace('CFE','') )
-    #         fig.suptitle(f'{cfe_score}% clean procurement: hour-by-hour\n\n', y=0.95, fontproperties=work_sans_font_medium, fontsize=14)
+        # set fname
+        if 'n_bf' in k:
+            fname = '2030 Reference Scenario'
+            fig.suptitle(f'{fname}', y=0.95, fontsize=14)
+        elif 'n_am' in k:
+            fname = '100% Annual Matching'
+            fig.suptitle(f'{fname}', y=0.95, fontsize=14)
+        elif 'n_hm' in k:
+            fname = k.split('_')[2]
+            cfe_score = int( fname.replace('CFE','') )
+            fig.suptitle(f'{cfe_score}% clean procurement: hour-by-hour\n\n', y=0.95, fontproperties=work_sans_font_medium, fontsize=14)
 
-    #     # save plot
-    #     fig.savefig(
-    #         os.path.join(
-    #             path_to_run_dir, f'results/monthly_hmap_score_{fname}.png'
-    #         ),
-    #         bbox_inches='tight'
-    #     )
+        # save plot
+        fig.savefig(
+            os.path.join(
+                path_to_run_dir, f'results/monthly_hmap_score_{fname}.png'
+            ),
+            bbox_inches='tight'
+        )
 
 
 def aggregate_capacity(

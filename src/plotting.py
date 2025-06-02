@@ -286,4 +286,6 @@ def tech_color_palette():
         'Fossil part of coal cofired with biomass': '#b18873',
         'Clean part of coal cofired with biomass': '#fe8348',
         'Long Duration Storage': '#69b2f5',
+        'Grid Imports': '#e3c1f0',
+        'Grid Exports': '#ba63da',
     }

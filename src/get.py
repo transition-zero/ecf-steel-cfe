@@ -223,11 +223,11 @@ def get_ci_procurement(n, ci_identifier):
     return pd.DataFrame({
         # imports
         'Grid supply' : (
-            n.links_t.p0.filter(regex=ci_identifier).filter(regex='Import').sum().sum() / ci_load,
+            n.links_t.p0.filter(regex=ci_identifier).filter(regex='Import').sum().sum(),# / ci_load,
         ),
         # exports
         'Excess' : (
-            n.links_t.p1.filter(regex=ci_identifier).filter(regex='Export').sum().sum() / ci_load,
+            n.links_t.p1.filter(regex=ci_identifier).filter(regex='Export').sum().sum(),# / ci_load,
         ),
         # ppa
         'C&I PPA' : (
@@ -238,7 +238,9 @@ def get_ci_procurement(n, ci_identifier):
                 ]
             .sum(axis=1)
             .sum()
-            / ci_load
+            - n.links_t.p0.filter(regex=ci_identifier).filter(regex='Storage Charge').sum().sum()
+            + n.links_t.p0.filter(regex=ci_identifier).filter(regex='Storage Discharge').sum().sum()
+            #/ ci_load
         ),
     })
 
