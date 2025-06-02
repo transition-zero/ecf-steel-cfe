@@ -91,14 +91,18 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     plot_system_capacity_mix(solved_networks=solved_networks,
                              path_to_run_dir=path_to_run_dir,
                              work_sans_font=work_sans_font)
-    
-    # plot_ci_costs_vs_benefits_relative_to_reference(solved_networks=solved_networks,
-    #                                                 path_to_run_dir=path_to_run_dir,
-    #                                                 work_sans_font=work_sans_font)
 
     # plot_system_unit_cost_by_scenario(solved_networks=solved_networks,
     #                                   path_to_run_dir=path_to_run_dir,
     #                                   work_sans_font=work_sans_font)
+
+    plot_system_costs_vs_benefits(solved_networks=solved_networks,
+                                                path_to_run_dir=path_to_run_dir,
+                                                work_sans_font=work_sans_font)
+    
+    plot_ci_curtailment(solved_networks=solved_networks,
+                        path_to_run_dir=path_to_run_dir,
+                        work_sans_font=work_sans_font)
 
     plot_cfe_score_heatmaps(solved_networks=solved_networks,
                             path_to_run_dir=path_to_run_dir,
@@ -1504,7 +1508,7 @@ def plot_ci_unit_cost_of_electricity(solved_networks, path_to_run_dir, work_sans
         bbox_inches='tight'
     )
 
-def plot_ci_costs_vs_benefits_relative_to_reference(solved_networks, path_to_run_dir, work_sans_font):
+def plot_system_costs_vs_benefits(solved_networks, path_to_run_dir, work_sans_font):
     """
     Plot C&I costs vs benefits relative to reference scenario.
     """
@@ -1561,7 +1565,12 @@ def plot_ci_costs_vs_benefits_relative_to_reference(solved_networks, path_to_run
             aggfunc='sum'
         )
     )
+    # save df
+    cost_delta.round(1).to_csv(os.path.join(path_to_run_dir, 'results/13b_system_costs_benefits_raw.csv'), index=True)
 
+    # Sum together columns with the same name under the 'variable' column index
+    cost_delta = cost_delta.groupby(level=1, axis=1).sum()
+    # cost_delta['Net Cost'] = cost_delta.sum(axis=1)
     cost_delta = cost_delta.loc[:, (cost_delta.sum(axis=0) != 0)]
 
     fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(10,4), width_ratios=[1, 10])
@@ -1570,16 +1579,29 @@ def plot_ci_costs_vs_benefits_relative_to_reference(solved_networks, path_to_run
     cplt.set_tz_theme()
 
     # plot 100% RES
-    res = cost_delta.loc[['100% RES']].div(1e9)
+    res = cost_delta.loc[['100% RES']].drop(columns=['Net Cost'], errors='ignore').div(1e9)
     res.plot(kind='bar', stacked=True, ax=ax0, legend=False)
     # add net cost marker
-    # ax0.scatter(x=res.index, y=[res.sum(axis=1)] * len(res.index), color='red', marker='s', edgecolors='black', linewidths=1)
+    ax0.scatter(x=res.index, y=[res.sum(axis=1)] * len(res.index), color='black', marker='x', linewidths=1)
 
     # plot cfe
-    cfe = cost_delta.loc[cost_delta.index != '100% RES'].div(1e9).copy()
+    cfe = cost_delta.loc[cost_delta.index != '100% RES'].drop(columns=['Net Cost'], errors='ignore').div(1e9).copy()
     cfe.index = [int(i.replace('CFE-', '')) for i in cfe.index]
     cfe.sort_index(inplace=True)
     cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True)
+    # add net cost marker
+    ax1.scatter(
+        x=np.arange(len(cfe)),
+        y=[cfe.sum(axis=1)],
+        color='black',
+        marker='x',
+        linewidths=1,
+        label='Net Cost'
+    )
+
+    # save df
+    combined_df = pd.concat([res, cfe], axis=0).assign(**{'Net Cost': lambda df: df.sum(axis=1)}).round(2)
+    combined_df.to_csv(os.path.join(path_to_run_dir, 'results/13a_system_costs_benefits.csv'), index=True)
 
     # formatting
     for ax in [ax0, ax1]:
@@ -1594,8 +1616,8 @@ def plot_ci_costs_vs_benefits_relative_to_reference(solved_networks, path_to_run
 
     ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
 
-    # Remove legend title and box
-    legend = ax1.legend(ncol=2)
+    # Remove legend title and box, move legend to the right and outside the plot
+    legend = ax1.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=1)
     legend.set_title(None)
     legend.get_frame().set_linewidth(0)
 
@@ -1606,7 +1628,15 @@ def plot_ci_costs_vs_benefits_relative_to_reference(solved_networks, path_to_run
     # save plot
     fig.savefig(
         os.path.join(
-            path_to_run_dir, 'results/cost_vs_benefit_by_scenario.png'
+            path_to_run_dir, 'results/13_system_costs_benefits.png'
+        ),
+        bbox_inches='tight'
+    )
+
+    # save plot
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/13_system_costs_benefits.svg'
         ),
         bbox_inches='tight'
     )
@@ -1701,6 +1731,110 @@ def plot_system_unit_cost_by_scenario(solved_networks, path_to_run_dir, work_san
         ),
         bbox_inches='tight'
     )
+
+def plot_ci_curtailment(solved_networks, path_to_run_dir, work_sans_font):
+    """
+    Plot C&I curtailment for each scenario.
+    """
+    # ------------------------------------------------------------------
+    # C&I CURTAILMENT
+    print('Creating C&I curtailment plot')
+
+    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
+    colors = cplt.tech_color_palette()
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+
+    curtailment_summary = (
+        pd.concat(
+            [
+                cget.get_ci_cost_summary(
+                    solved_networks[k]
+                    )
+                .assign(name=k)
+                .assign(ci_load = n.loads_t.p.filter(regex='C&I').sum().sum())
+                for k, n in solved_networks.items()
+            ]
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name',
+        )
+        .drop('name', axis=1)
+        .sort_values('CFE Score')
+        .merge(ci_carriers, left_on='carrier', right_index=True, how='left')
+        .assign(carrier=lambda df: df['nice_name'].combine_first(df['carrier']))
+        .query("carrier != 'AC'")
+        .query("potential_dispatch > 0")
+        .loc[:, ['Scenario', 'CFE Score', 'carrier', 'curtailment_perc']]
+    )
+
+    curtailment_summary.to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/14_ci_curtailment.csv'
+        ),
+        index=False
+    )
+    
+    res = (
+        curtailment_summary
+        .loc[curtailment_summary['Scenario'] == '100% RES']
+        .pivot_table(columns='carrier', index='Scenario', values='curtailment_perc')
+        .multiply(100)
+    )
+
+    cfe = (
+        curtailment_summary
+        .loc[curtailment_summary['Scenario'].str.contains('CFE')]
+        .pivot_table(columns='carrier', index='CFE Score', values='curtailment_perc')
+        .multiply(100)
+    )
+
+    res.plot(kind='bar', ax=ax0, legend=True, color=[colors.get(x, '#333333') for x in res.columns])
+    cfe.plot(kind='bar', ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in cfe.columns])
+
+    ax0.set_ylabel('Curtailment of C&I PPA generators [%]', fontproperties=work_sans_font)
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+    ax0.set_xlabel('')
+
+    for ax in [ax0, ax1]:
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(work_sans_font)
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        sns.despine(ax=ax, left=False)
+
+    # Remove legend title and box, make sure labels are displayed in the same order as in the plot
+    handles, labels = ax1.get_legend_handles_labels()
+    order = [cfe.columns.tolist().index(label) for label in labels if label in cfe.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+    ax0.legend_.remove() if ax0.legend_ is not None else None
+
+    legend = ax1.legend(sorted_handles, sorted_labels, bbox_to_anchor=(1, 0.5), ncol=1)
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
+
+    # Adjust horizontal space between ax0 and ax1
+    fig.subplots_adjust(wspace=0.1)
+
+    # save plot
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/14_ci_curtailment.png'
+        ),
+        bbox_inches='tight'
+    )
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/14_ci_curtailment.svg'
+        ),
+        bbox_inches='tight'
+    )
+
 
 def plot_cfe_score_heatmaps(solved_networks, path_to_run_dir, work_sans_font_medium):
     """

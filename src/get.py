@@ -69,7 +69,7 @@ def get_ci_cost_summary(n : pypsa.Network) -> pd.DataFrame:
 
     ci_links_costs['dispatch'] = n.links_t.p0[ ci_links_costs.index ].sum()
 
-    df = pd.concat([ci_generator_costs, ci_storage_costs, ci_links_costs]).round(2)
+    df = pd.concat([ci_generator_costs, ci_storage_costs, ci_links_costs]).round(3)
 
     df.loc[:, 'capex'] = df['p_nom_opt'] * df['capital_cost']
     df.loc[:, 'opex'] = df['dispatch'] * df['marginal_cost']
