@@ -1,6 +1,7 @@
 import os
 
 import click
+import gurobipy
 import pypsa
 
 from run.run_scenarios import RunBrownfieldSimulation, RunCFE, RunRES100
@@ -24,7 +25,7 @@ def build_brownfield_network(run, configs) -> None:
     brownfield_network.export_to_netcdf(os.path.join(output_dir, f"{run_name}.nc"))
 
 
-def solve_brownfield_network(run, configs, with_cfe: bool) -> pypsa.Network:
+def solve_brownfield_network(run, configs, with_cfe: bool, env=None) -> pypsa.Network:
     """
     Sets up and optimizes a brownfield network.
     Parameters:
@@ -49,11 +50,20 @@ def solve_brownfield_network(run, configs, with_cfe: bool) -> pypsa.Network:
     final_brownfield.optimize.create_model()
     brownfield.ApplyBrownfieldConstraints(final_brownfield, run, configs)
 
-    final_brownfield.optimize(solver_name=configs["global_vars"]["solver"])
+    final_brownfield.optimize(
+        solver_name=configs["solver"]["name"],
+        solver_options=configs["solver_options"][configs["solver"]["options"]],
+        io_api="direct",
+        env=env,
+    )
     return final_brownfield
 
 
 def run_scenarios(configs):
+    env = None
+    if configs["solver"]["name"] == "gurobi":
+        env = gurobipy.Env()
+
     for run in configs["model_runs"]:
         helpers.setup_dir(
             path_to_dir=configs["paths"]["output_model_runs"]
@@ -62,7 +72,7 @@ def run_scenarios(configs):
         )
         print(f"Running: {run['name']}")
         ci_identifier = configs["global_vars"]["ci_label"]
-        N_BROWNFIELD = RunBrownfieldSimulation(run, configs)
+        N_BROWNFIELD = RunBrownfieldSimulation(run, configs, env=env)
         RES_TARGET = 100
         print(f"Computing annual matching scenario (RES Target: {int(RES_TARGET)}%)...")
         N_BROWNFIELD_original = helpers.load_brownfield_network(run, configs)
@@ -72,6 +82,7 @@ def run_scenarios(configs):
             run=run,
             res_target=RES_TARGET,
             configs=configs,
+            env=env,
         )
         for CFE_Score in run["cfe_score"]:
             print(f"Computing hourly matching scenario (CFE: {int(CFE_Score*100)}...")
@@ -82,6 +93,7 @@ def run_scenarios(configs):
                 ci_identifier=ci_identifier,
                 run=run,
                 configs=configs,
+                env=env,
             )
         path_to_run_dir = os.path.join(
             configs["paths"]["output_model_runs"], run["name"]
@@ -128,11 +140,15 @@ def solve_brownfield(config, with_cfe: bool):
     """
 
     configs = helpers.load_configs(config)
+    env = None
+    if configs["solver"]["name"] == "gurobi":
+        env = gurobipy.Env()
+
     for run in configs["model_runs"]:
         run_name = run["name"]
         output_dir = os.path.join(configs["paths"]["output_model_runs"])
         os.makedirs(output_dir, exist_ok=True)
-        solved_brownfield_network = solve_brownfield_network(run, configs, with_cfe)
+        solved_brownfield_network = solve_brownfield_network(run, configs, with_cfe, env=env)
         solved_brownfield_network.export_to_netcdf(
             os.path.join(output_dir, f"{run_name}.nc")
         )
@@ -151,11 +167,15 @@ def solve_brownfield_cfe(config):
     """
 
     configs = helpers.load_configs(config)
+    env = None
+    if configs["solver"]["name"] == "gurobi":
+        env = gurobipy.Env()
+
     for run in configs["model_runs"]:
         run_name = run["name"]
         output_dir = os.path.join(configs["paths"]["output_model_runs"])
         os.makedirs(output_dir, exist_ok=True)
-        solved_brownfield_network = solve_brownfield_network(run, configs)
+        solved_brownfield_network = solve_brownfield_network(run, configs, with_cfe=True, env=env)
         solved_brownfield_network.export_to_netcdf(
             os.path.join(output_dir, f"{run_name}.nc")
         )

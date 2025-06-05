@@ -327,25 +327,29 @@ def apply_cfe_constraint(
         # ---------------------------------------------------------------
 
         n.model.add_constraints(
-            CI_Demand == CI_PPA - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge
+            CI_Demand == CI_PPA - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge,
+            name=f"cfe-constraint-hourly-matching-{bus}",
         )
         
         # Constraint 2: CFE target
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            ( CI_PPA - CI_GridExport + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand ).sum() * CFE_Score, 
+            ( CI_PPA - CI_GridExport + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand ).sum() * CFE_Score,
+            name=f"cfe-constraint-target-{bus}",
         )
 
         # Constraint 3: Excess
         # ---------------------------------------------------------------
         n.model.add_constraints(
             CI_GridExport.sum() <= sum(CI_Demand) * max_excess_export,
+            name=f"cfe-constraint-excess-{bus}",
         )
 
         # Constraint 4: Battery can only be charged by clean PPA (not grid)
         # ---------------------------------------------------------------
         n.model.add_constraints(
             CI_PPA >= CI_StorageCharge,
+            name=f"cfe-constraint-storage-{bus}",
         )
 
     return n

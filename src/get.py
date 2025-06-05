@@ -5,7 +5,7 @@ import pandas as pd
 def get_cfe_score_ts(n, ci_identifier='C&I'):
     '''Calculate the CFE score and return it as a time series
     '''
-    GridCFE = GetGridCFE(n, ci_identifier=ci_identifier)
+    GridCFE = GetGridCFE(n, ci_identifier=ci_identifier, run=dict)
     CI_Demand = n.loads_t.p.filter(regex=ci_identifier).sum(axis=1)
     CI_PPA = n.generators_t.p.filter(regex=ci_identifier).sum(axis=1)
     CI_GridExport = n.links_t.p0.filter(regex='Exports').sum(axis=1)
@@ -98,7 +98,7 @@ def get_ci_cost_summary(n : pypsa.Network) -> pd.DataFrame:
     return df
 
 
-def GetGridCFE(n:pypsa.Network, ci_identifier):
+def GetGridCFE(n:pypsa.Network, ci_identifier, run: dict):
     '''Returns CFE of regional grid as a list of floats
     '''
     # get clean carriers
@@ -106,21 +106,27 @@ def GetGridCFE(n:pypsa.Network, ci_identifier):
         i for i in n.carriers.query(" co2_emissions <= 0").index.tolist() 
         if i in n.generators.carrier.tolist()
     ]
+
+    for bus in run["nodes_with_ci_load"]:
     # get clean generators
-    clean_generators_grid = (
-        n.generators.loc[ 
-            (n.generators.carrier.isin(clean_carriers)) &
-            (~n.generators.index.str.contains(ci_identifier))
-        ]
-        .index
-    )
-    # get all generators
-    all_generators_grid = (
-        n.generators.loc[ 
-            (~n.generators.index.str.contains(ci_identifier))
-        ]
-        .index
-    )
+        clean_generators_grid = (
+            n.generators.loc[ 
+                (n.generators.carrier.isin(clean_carriers)) &
+                (~n.generators.index.str.contains(ci_identifier))
+                &
+                (n.generators.index.str.contains(bus))
+            ]
+            .index
+        )
+        # get all generators
+        all_generators_grid = (
+            n.generators.loc[ 
+                (~n.generators.index.str.contains(ci_identifier))
+                &
+                (n.generators.index.str.contains(bus))
+            ]
+            .index
+        )
     # return CFE
     return (n.generators_t.p[clean_generators_grid].sum(axis=1) / n.generators_t.p[all_generators_grid].sum(axis=1)).round(2).tolist()
 
