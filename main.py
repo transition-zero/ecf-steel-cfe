@@ -199,7 +199,7 @@ def run_plots(
         path_to_run_dir = os.path.join(
             config["paths"]["output_model_runs"], run["name"]
         )
-        postprocess.plot_results(path_to_run_dir,config["model_runs"][0]["nodes_with_ci_load"][0])
+        postprocess.plot_results(path_to_run_dir,run,run["nodes_with_ci_load"][0])
 
 
 if __name__ == "__main__":

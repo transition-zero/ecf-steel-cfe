@@ -2,10 +2,10 @@ import os
 import pypsa
 import pandas as pd
 
-def get_cfe_score_ts(n, ci_identifier='C&I'):
+def get_cfe_score_ts(n, run, ci_identifier='C&I'):
     '''Calculate the CFE score and return it as a time series
     '''
-    GridCFE = GetGridCFE(n, ci_identifier=ci_identifier, run=dict)
+    GridCFE = GetGridCFE(n, ci_identifier=ci_identifier, run=run)
     CI_Demand = n.loads_t.p.filter(regex=ci_identifier).sum(axis=1)
     CI_PPA = n.generators_t.p.filter(regex=ci_identifier).sum(axis=1)
     CI_GridExport = n.links_t.p0.filter(regex='Exports').sum(axis=1)
@@ -98,37 +98,71 @@ def get_ci_cost_summary(n : pypsa.Network) -> pd.DataFrame:
     return df
 
 
-def GetGridCFE(n:pypsa.Network, ci_identifier, run: dict):
-    '''Returns CFE of regional grid as a list of floats
-    '''
-    # get clean carriers
-    clean_carriers = [
-        i for i in n.carriers.query(" co2_emissions <= 0").index.tolist() 
+def GetGridCFE(
+    n: pypsa.Network,   
+    ci_identifier: str,
+    run: dict
+):
+    """
+
+    Calculate the CFE score of a grid, intra- and inter-regionally. Here, we follow the mathematical
+    expressions presented by Xu and Jenkins (2021): https://acee.princeton.edu/24-7/
+
+    Parameters:
+    -----------
+    network : pypsa.Network
+        The optimised network for which we are calculating the GridCFE.
+    bus : str
+        The country bus for which we are calculating the GridCFE.
+    ci_identifier : str
+        The unique identifer used to identify C&I assets.
+
+    Returns:
+    -----------
+    CFE Score: list
+        Hourly resolution CFE scores for each snapshot in the network.
+
+    Let:
+    -----------
+    R = Intra-regional grid
+    Z = Inter-regional grid
+
+    """
+
+    
+
+        # get global clean carriers
+    global_clean_carriers = [
+        i
+        for i in n.carriers.query(" co2_emissions <= 0").index.tolist()
         if i in n.generators.carrier.tolist()
     ]
 
     for bus in run["nodes_with_ci_load"]:
-    # get clean generators
-        clean_generators_grid = (
-            n.generators.loc[ 
-                (n.generators.carrier.isin(clean_carriers)) &
-                (~n.generators.index.str.contains(ci_identifier))
-                &
-                (n.generators.index.str.contains(bus))
-            ]
-            .index
-        )
+        # get clean generators in R
+        R_clean_generators = n.generators.loc[
+            # clean carriers
+            (n.generators.carrier.isin(global_clean_carriers))
+            &
+            #exclude assets not in R
+            (n.generators.index.str.contains(bus)) &
+            # exclude C&I assets
+            (~n.generators.index.str.contains(ci_identifier))
+        ].index
+
         # get all generators
-        all_generators_grid = (
-            n.generators.loc[ 
-                (~n.generators.index.str.contains(ci_identifier))
-                &
-                (n.generators.index.str.contains(bus))
-            ]
-            .index
-        )
-    # return CFE
-    return (n.generators_t.p[clean_generators_grid].sum(axis=1) / n.generators_t.p[all_generators_grid].sum(axis=1)).round(2).tolist()
+        R_all_generators = n.generators.loc[
+            (~n.generators.index.str.contains(ci_identifier))
+            &
+            (n.generators.index.str.contains(bus)) 
+        ].index
+
+        # calculate CFE sceore
+        total_clean_generation = n.generators_t.p[R_clean_generators].sum(axis=1)
+        total_generation = n.generators_t.p[R_all_generators].sum(axis=1)
+
+    # return CFE score
+    return (total_clean_generation / total_generation).round(2).tolist()
 
 
 def load_from_dir(path) -> dict:

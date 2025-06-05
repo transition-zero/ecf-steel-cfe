@@ -8,7 +8,7 @@ import matplotlib.font_manager as fm
 from . import get as cget
 from . import plotting as cplt
 
-def plot_cfe_hmap(n, n_reference, ymax, fields_to_plot, ci_identifier='C&I'):
+def plot_cfe_hmap(n, n_reference, ymax, fields_to_plot, run, ci_identifier='C&I'):
     '''Plot the CFE score as a heatmap
     '''
 
@@ -18,7 +18,7 @@ def plot_cfe_hmap(n, n_reference, ymax, fields_to_plot, ci_identifier='C&I'):
     work_sans_font = fm.FontProperties(fname=work_sans_path_light)
     work_sans_font_medium = fm.FontProperties(fname=work_sans_path_medium)
 
-    cfe_t = cget.get_cfe_score_ts(n, ci_identifier)
+    cfe_t = cget.get_cfe_score_ts(n, run, ci_identifier,)
     cfe_t.index = cfe_t.index #.tz_localize('UTC').tz_convert('Asia/Singapore')
     cfe_t['Hour'] = cfe_t.index.hour + 1
     cfe_t['Day'] = cfe_t.index.day
@@ -99,7 +99,7 @@ def plot_cfe_hmap(n, n_reference, ymax, fields_to_plot, ci_identifier='C&I'):
     return f, ax0, ax1
 
 
-def plot_monthly_cfe_hmap(n, ci_identifier='C&I'):
+def plot_monthly_cfe_hmap(n, run, ci_identifier='C&I'):
     '''Plot the CFE score as a heatmap
     '''
 
@@ -108,8 +108,8 @@ def plot_monthly_cfe_hmap(n, ci_identifier='C&I'):
     work_sans_path_medium = './assets/WorkSans-Medium.ttf'
     work_sans_font = fm.FontProperties(fname=work_sans_path_light)
     work_sans_font_medium = fm.FontProperties(fname=work_sans_path_medium)
-    
-    cfe_t = cget.get_cfe_score_ts(n, ci_identifier)
+
+    cfe_t = cget.get_cfe_score_ts(n, run, ci_identifier)
     cfe_t.index = cfe_t.index 
     cfe_t['Hour'] = cfe_t.index.hour + 1
     cfe_t['Day'] = cfe_t.index.day

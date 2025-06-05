@@ -11,7 +11,7 @@ from matplotlib.ticker import MaxNLocator
 from . import plotting as cplt
 from . import get as cget
 
-def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
+def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     '''Plot results for a given run
     '''
 
@@ -78,6 +78,7 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
     
     plot_ci_emission_rate_by_scenario(solved_networks=solved_networks,
                                       path_to_run_dir=path_to_run_dir,
+                                      run=run,
                                       work_sans_font=work_sans_font)
 
     plot_total_system_costs_by_scenario(solved_networks=solved_networks,
@@ -106,10 +107,12 @@ def plot_results(path_to_run_dir: str, nodes_with_ci_loads):
 
     plot_cfe_score_heatmaps(solved_networks=solved_networks,
                             path_to_run_dir=path_to_run_dir,
+                            run=run,
                             work_sans_font_medium=work_sans_font_medium)
     
     plot_monthly_cfe_score_heatmaps(solved_networks=solved_networks,
                                     path_to_run_dir=path_to_run_dir,
+                                    run=run,
                                     work_sans_font_medium=work_sans_font_medium)
 
 
@@ -590,6 +593,8 @@ def plot_relative_emissions_by_scenario(solved_networks, path_to_run_dir, work_s
     # ------------------------------------------------------------------
     # EMISSIONS
 
+    print('Creating relative emissions reduction by scenario plot')
+
     emissions = (
         pd
         .DataFrame({
@@ -747,7 +752,7 @@ def plot_system_emission_rate_by_scenario(solved_networks, path_to_run_dir, work
         bbox_inches='tight'
     )
 
-def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, work_sans_font):
+def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, run, work_sans_font):
     """
     Plot C&I emission rate [gCO2/kWh] by scenario.
     """
@@ -763,7 +768,7 @@ def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, work_san
             'load' : [solved_networks[k].loads_t.p_set.filter(regex='C&I').sum().sum() for k in solved_networks.keys()],
             'emissions' : [
                 np.sum(
-                    solved_networks[k].links_t.p0.filter(regex='C&I').filter(regex='Import').values.flatten() @ np.array(cget.GetGridCFE(solved_networks[k], ci_identifier='C&I', run=dict[nodes_with_ci_loads]))
+                    solved_networks[k].links_t.p0.filter(regex='C&I').filter(regex='Import').values.flatten() @ np.array(cget.GetGridCFE(solved_networks[k], ci_identifier='C&I', run=run))
                 ) 
                 for k in solved_networks.keys()
             ],
@@ -1836,7 +1841,7 @@ def plot_ci_curtailment(solved_networks, path_to_run_dir, work_sans_font):
     )
 
 
-def plot_cfe_score_heatmaps(solved_networks, path_to_run_dir, work_sans_font_medium):
+def plot_cfe_score_heatmaps(solved_networks, path_to_run_dir, run, work_sans_font_medium):
     """
     Plot heatmaps of CFE score for each scenario.
     """
@@ -1851,7 +1856,7 @@ def plot_cfe_score_heatmaps(solved_networks, path_to_run_dir, work_sans_font_med
         n_reference = solved_networks['n_bf'].copy()
         n = solved_networks[k].copy()
         # init fig
-        fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, fields_to_plot=ci_carriers, ci_identifier='C&I')
+        fig, ax0, ax1 = cplt.plot_cfe_hmap(n, n_reference, ymax=ymax, fields_to_plot=ci_carriers, run=run, ci_identifier='C&I')
 
         # set fname
         if 'n_bf' in k:
@@ -1875,7 +1880,7 @@ def plot_cfe_score_heatmaps(solved_networks, path_to_run_dir, work_sans_font_med
             bbox_inches='tight'
         )
 
-def plot_monthly_cfe_score_heatmaps(solved_networks, path_to_run_dir, work_sans_font_medium):
+def plot_monthly_cfe_score_heatmaps(solved_networks, path_to_run_dir, run, work_sans_font_medium):
     """
     Plot monthly heatmaps of CFE score for each scenario.
     """
@@ -1885,7 +1890,7 @@ def plot_monthly_cfe_score_heatmaps(solved_networks, path_to_run_dir, work_sans_
     for k in solved_networks.keys():
         n = solved_networks[k].copy()
 
-        fig, ax = cplt.plot_monthly_cfe_hmap(n, ci_identifier='C&I')
+        fig, ax = cplt.plot_monthly_cfe_hmap(n, run=run, ci_identifier='C&I')
 
         # set fname
         if 'n_bf' in k:
