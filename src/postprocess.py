@@ -67,6 +67,12 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     plot_ci_unit_cost_of_electricity(solved_networks=solved_networks,
                                      path_to_run_dir=path_to_run_dir,
                                      work_sans_font=work_sans_font)
+    
+    plot_ci_unit_cost_of_electricity_alt(solved_networks=solved_networks,
+                                        path_to_run_dir=path_to_run_dir,
+                                        import_tariff=83.56, # in USD/MWh
+                                        export_tariff=36.33, # in USD/MWh
+                                        work_sans_font=work_sans_font)
 
     plot_relative_emissions_by_scenario(solved_networks=solved_networks,
                                         path_to_run_dir=path_to_run_dir,
@@ -321,7 +327,7 @@ def plot_ci_and_parent_generation(solved_networks, path_to_run_dir, nodes_with_c
     fig, ax0, ax1, ax2 = cplt.bar_plot_3row(width_ratios=[1, 1, 10], figsize=(6, 4))
     colors = cplt.tech_color_palette()
 
-    ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in ref.columns])
     res.plot(kind='bar', stacked=True, ax=ax1, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
     cfe.plot(kind='bar', stacked=True, ax=ax2, legend=True, color=[colors.get(x, '#333333') for x in cfe.columns])
 
@@ -437,7 +443,7 @@ def plot_ci_and_parent_capacity(solved_networks, path_to_run_dir, nodes_with_ci_
     fig, ax0, ax1, ax2 = cplt.bar_plot_3row(width_ratios=[1, 1, 10], figsize=(6, 4))
     colors = cplt.tech_color_palette()
 
-    ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
+    ref.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in ref.columns])
     res.plot(kind='bar', stacked=True, ax=ax1, legend=False, color=[colors.get(x, '#333333') for x in res.columns])
     cfe.plot(kind='bar', stacked=True, ax=ax2, legend=True, color=[colors.get(x, '#333333') for x in cfe.columns])
 
@@ -1272,10 +1278,17 @@ def plot_ci_energy_balance(solved_networks, path_to_run_dir, work_sans_font):
 def plot_ci_unit_cost_of_electricity(solved_networks, path_to_run_dir, work_sans_font):
     """
     Plot unit cost of electricity (USD/MWh) for C&I by scenario.
+    This is calculated assuming that import and export costs are as per the model marginal price.
+
+    PPA unit costs are equal to (PPA costs + PPA revenue)/PPA generation. This includes export revenue.
+    Import unit costs are equal to (import costs)/import generation.
+
+    Each unit cost is weighted by the proportion of C&I load met by PPA generators, 
+    and the proportion met by energy imported, and then added together.
     """
     # ------------------------------------------------------------------
     # Unit cost of electricity (currency/MWh)
-    print('Creating unit cost of electricity plot')
+    print('Creating unit cost of electricity plot with marginal prices')
 
     fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
 
@@ -1313,6 +1326,8 @@ def plot_ci_unit_cost_of_electricity(solved_networks, path_to_run_dir, work_sans
         .rename(columns=lambda x: 'grid_exports' if 'Grid Exports' in str(x) else x)
         .rename(columns=lambda x: 'grid_imports' if 'Grid Imports' in str(x) else x)
         .rename_axis(columns=None)
+        .assign(ppa_weighting=lambda df: (df['ci_load'] - df['grid_imports'])/df['ci_load'])
+        .assign(import_weighting=lambda df: df['grid_imports'] / df['ci_load'])
     )
 
     unit_cost = (
@@ -1324,16 +1339,25 @@ def plot_ci_unit_cost_of_electricity(solved_networks, path_to_run_dir, work_sans
         .reset_index()
         .merge(unit_cost_denominator, left_on = ['Scenario','CFE Score'], right_on = ['Scenario','CFE Score'])
         .sort_values(['CFE Score','Scenario','carrier'])
-        # this is the unit cost considering the cost and revenue of imports and exports
-        # the PPA offtaker bears the burden and revenue f exporting to the grid
-        .assign(unit_cost_a = lambda df: df['total_costs'] / (df['ci_load'] + df['grid_exports']))
-        # # unit cost ignoring import costs and export revenue
-        # # it is scaled by the proportion of c&i load met and energy exported
-        # # the PPA offtaker should not incur costs of electricity exported to the grid
-        .assign(unit_cost_b = lambda df: ((df['capex'] + df['opex']) *
-                                            (df['ci_load'] - df['grid_imports']) *
-                                            (1/(df['ci_load'] - df['grid_imports'] + df['grid_exports'])**2))
-                                            )
+        .assign(
+            import_unit_cost=lambda df: np.where(
+                df['carrier'] == 'Grid Imports',
+                df['import_weighting'] * (1/df['grid_imports']) * df['import_cost'],
+                0
+            ),
+            ppa_unit_cost=lambda df: np.where(
+                df['carrier'] != 'Grid Imports',
+                (1/(df['ci_load'] - df['grid_imports'] + df['grid_exports'])) * df['ppa_weighting'] * df['total_costs'],
+                0
+            ),
+            export_unit_cost=lambda df: np.where(
+                df['carrier'] == 'Grid Exports',
+                (1/(df['ci_load'] - df['grid_imports'] + df['grid_exports'])) * df['ppa_weighting'] * df['export_revenue'],
+                0
+            )
+        )
+        .fillna(0)
+        .assign(unit_cost_a=lambda df: df['ppa_unit_cost'] + df['import_unit_cost'] + df['export_unit_cost'])
     )
 
     res_unit_cost = (
@@ -1432,41 +1456,148 @@ def plot_ci_unit_cost_of_electricity(solved_networks, path_to_run_dir, work_sans
         bbox_inches='tight'
     )
 
-    ### print off alternative unit cost (unit cost b)
+def plot_ci_unit_cost_of_electricity_alt(solved_networks, 
+                                         path_to_run_dir, 
+                                         import_tariff, 
+                                         export_tariff,
+                                         work_sans_font):
+    """
+    Plot unit cost of electricity (USD/MWh) for C&I by scenario.
+    This uses an alternative calculation, where the import and export cost are user inputs
+    This reflects real world tariffs instead of marginal pricing as calculated by the model
 
-    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
+    PPA unit costs are equal to (PPA costs + PPA revenue)/PPA generation. This includes export revenue.
+    Import unit costs are equal to (import costs)/import generation.
+
+    Each unit cost is weighted by the proportion of C&I load met by PPA generators, 
+    and the proportion met by energy imported, and then added together.
+    """
+    # ------------------------------------------------------------------
+    # Unit cost of electricity (currency/MWh)
+    print('Creating unit cost of electricity plot with user-defined tariffs')
+
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+
+    cost_summary = (
+        pd.concat(
+            [
+                cget.get_ci_cost_summary(
+                    solved_networks[k]
+                )
+                .assign(name=k)
+                .assign(ci_load = n.loads_t.p.filter(regex='C&I').sum().sum())
+                for k, n in solved_networks.items()
+            ]
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name',
+        )
+        .drop('name', axis=1)
+        .sort_values('CFE Score')
+        .merge(ci_carriers, left_on='carrier', right_index=True, how='left')
+        .assign(carrier=lambda df: df['nice_name'].combine_first(df['carrier']))
+    )
+    cost_summary['CFE Score'] = cost_summary['CFE Score'].fillna(0)
+
+    unit_cost_denominator = (
+        cost_summary[cost_summary.index.str.contains('Grid Imports|Grid Exports')]
+        .loc[:, ['dispatch', 'ci_load', 'Scenario', 'CFE Score']]
+        .reset_index()
+        .rename(columns={'index': 'flow'})
+        .pivot_table(index=['CFE Score', 'Scenario', 'ci_load'], columns='flow', values='dispatch')
+        .reset_index()
+        .rename(columns=lambda x: 'grid_exports' if 'Grid Exports' in str(x) else x)
+        .rename(columns=lambda x: 'grid_imports' if 'Grid Imports' in str(x) else x)
+        .rename_axis(columns=None)
+        .assign(ppa_weighting=lambda df: (df['ci_load'] - df['grid_imports'])/df['ci_load'])
+        .assign(import_weighting=lambda df: df['grid_imports'] / df['ci_load'])
+    )
+
+    unit_cost = (
+        cost_summary[~cost_summary.index.str.contains('Charge|Discharge')]
+        .assign(carrier=lambda df: df['carrier'].where(~df.index.str.contains('Grid Exports'), 'Grid Exports'))
+        .assign(carrier=lambda df: df['carrier'].where(~df.index.str.contains('Grid Imports'), 'Grid Imports'))
+        .groupby(['carrier', 'CFE Score', 'Scenario'], dropna=False)[['dispatch', 'capex', 'opex', 'import_cost', 'export_revenue']].sum()
+        .assign(total_costs=lambda df: df[['capex', 'opex']].sum(axis=1))
+        .reset_index()
+        .merge(unit_cost_denominator, left_on = ['Scenario','CFE Score'], right_on = ['Scenario','CFE Score'])
+        .sort_values(['CFE Score','Scenario','carrier'])
+        .assign(
+            import_unit_cost=lambda df: np.where(
+                df['carrier'] == 'Grid Imports',
+                df['import_weighting'] * import_tariff,
+                0
+            ),
+            ppa_unit_cost=lambda df: np.where(
+                ~df['carrier'].isin(['Grid Imports', 'Grid Exports']),
+                ((1/(df['ci_load'] - df['grid_imports'] + df['grid_exports']))
+                * df['ppa_weighting'] 
+                * df['total_costs']),
+                # + grid_charges,
+                0
+            ),
+            export_unit_cost=lambda df: np.where(
+                df['carrier'] == 'Grid Exports',
+                (1/(df['ci_load'] - df['grid_imports'] + df['grid_exports'])) * df['ppa_weighting'] * df['grid_exports'] * -1 * export_tariff,
+                0
+            )
+        )
+        .fillna(0)
+        .assign(unit_cost=lambda df: df['ppa_unit_cost'] + df['import_unit_cost'] + df['export_unit_cost'])
+    )
 
     res_unit_cost = (
         unit_cost
-        .loc[unit_cost['unit_cost_b'] != 0]
+        .loc[unit_cost['unit_cost'] != 0]
         .loc[unit_cost['Scenario'] == '100% RES']
-        .loc[:, ['CFE Score', 'carrier', 'unit_cost_b']]
-        .pivot_table(index='CFE Score', columns='carrier', values='unit_cost_b')
+        .loc[:, ['CFE Score', 'carrier', 'unit_cost']]
+        .pivot_table(index='CFE Score', columns='carrier', values='unit_cost')
+        .assign(**{'Net Cost': lambda df: df.sum(axis=1)})
         .rename(index={0:'100% RES'})
         # .set_index('100% RES')
     )
 
     cfe_unit_cost = (
         unit_cost
-        .loc[unit_cost['unit_cost_b'] != 0]
+        .loc[unit_cost['unit_cost'] != 0]
         .query("Scenario.str.contains('CFE')")
         .sort_values('CFE Score')
-        .loc[:, ['CFE Score', 'carrier', 'unit_cost_b']]
-        .pivot_table(index='CFE Score', columns='carrier', values='unit_cost_b')
-        # .set_index('CFE Score')
+        .loc[:, ['CFE Score', 'carrier', 'unit_cost']]
+        .pivot_table(index='CFE Score', columns='carrier', values='unit_cost')
+        .assign(**{'Net Cost': lambda df: df.sum(axis=1)})
     )
 
     # save df
-    (pd.concat([res_unit_cost, cfe_unit_cost], axis=0)).to_csv(os.path.join(path_to_run_dir, 'results/06b_unit_cost.csv'), index=True)
+    (pd.concat([res_unit_cost, cfe_unit_cost], axis=0)).round(2).to_csv(os.path.join(path_to_run_dir, 'results/06b_unit_cost.csv'), index=True)
 
+    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
     colors = cplt.tech_color_palette()
-    res_unit_cost.plot(
+    res_unit_cost.drop(columns=['Net Cost'], errors='ignore').plot(
         kind='bar', stacked=True, ax=ax0, legend=False,
-        color=[colors.get(x, '#333333') for x in res_unit_cost.columns]
+        color=[colors.get(x, '#333333') for x in res_unit_cost.columns if x != 'Net Cost']
     )
-    cfe_unit_cost.plot(
+    cfe_unit_cost.drop(columns=['Net Cost'], errors='ignore').plot(
         kind='bar', stacked=True, ax=ax1, legend=True,
-        color=[colors.get(x, '#333333') for x in cfe_unit_cost.columns]
+        color=[colors.get(x, '#333333') for x in cfe_unit_cost.columns if x != 'Net Cost']
+    )
+    
+    ax0.scatter(
+        x=res_unit_cost.index,
+        y=res_unit_cost['Net Cost'],
+        color='black',
+        marker='x',
+        s=40,
+        label='Net Cost'
+    )
+
+    ax1.scatter(
+        x=np.arange(len(cfe_unit_cost)),
+        y=cfe_unit_cost['Net Cost'],
+        color='black',
+        marker='x',
+        s=40,
+        label='Net Cost'
     )
     
     ax0.set_ylabel('Unit Cost (USD/MWh)', fontproperties=work_sans_font)
@@ -1578,7 +1709,7 @@ def plot_system_costs_vs_benefits(solved_networks, path_to_run_dir, work_sans_fo
     # cost_delta['Net Cost'] = cost_delta.sum(axis=1)
     cost_delta = cost_delta.loc[:, (cost_delta.sum(axis=0) != 0)]
 
-    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(10,4), width_ratios=[1, 10])
+    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1, 10])
 
     # set theme
     cplt.set_tz_theme()
