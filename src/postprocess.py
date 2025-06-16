@@ -1901,7 +1901,7 @@ def plot_ci_curtailment(solved_networks, path_to_run_dir, work_sans_font):
         .assign(carrier=lambda df: df['nice_name'].combine_first(df['carrier']))
         .query("carrier != 'AC'")
         .query("potential_dispatch > 0")
-        .loc[:, ['Scenario', 'CFE Score', 'carrier', 'curtailment_perc']]
+        .loc[:, ['Scenario', 'CFE Score', 'carrier', 'dispatch', 'potential_dispatch', 'curtailment_perc']]
     )
 
     curtailment_summary.to_csv(
@@ -1910,7 +1910,9 @@ def plot_ci_curtailment(solved_networks, path_to_run_dir, work_sans_font):
         ),
         index=False
     )
-    
+
+    curtailment_summary = curtailment_summary.loc[:, ['Scenario', 'CFE Score', 'carrier', 'curtailment_perc']]
+
     res = (
         curtailment_summary
         .loc[curtailment_summary['Scenario'] == '100% RES']
