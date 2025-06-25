@@ -84,6 +84,7 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     
     plot_ci_emission_rate_by_scenario(solved_networks=solved_networks,
                                       path_to_run_dir=path_to_run_dir,
+                                      nodes_with_ci_loads=nodes_with_ci_loads,
                                       run=run,
                                       work_sans_font=work_sans_font)
 
@@ -758,7 +759,7 @@ def plot_system_emission_rate_by_scenario(solved_networks, path_to_run_dir, work
         bbox_inches='tight'
     )
 
-def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, run, work_sans_font):
+def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, nodes_with_ci_loads, run, work_sans_font):
     """
     Plot C&I emission rate [gCO2/kWh] by scenario.
     """
@@ -774,10 +775,16 @@ def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, run, wor
             'load' : [solved_networks[k].loads_t.p_set.filter(regex='C&I').sum().sum() for k in solved_networks.keys()],
             'emissions' : [
                 np.sum(
-                    solved_networks[k].links_t.p0.filter(regex='C&I').filter(regex='Import').values.flatten() @ np.array(cget.GetGridCFE(solved_networks[k], ci_identifier='C&I', run=run))
+                    solved_networks[k].links_t.p0.filter(regex='C&I').filter(regex='Import').values.flatten() @ np.array(cget.get_ci_parent_emissions(solved_networks[k], nodes_with_ci_loads))
                 ) 
                 for k in solved_networks.keys()
             ],
+            # 'emissions' : [
+            #     np.sum(
+            #         solved_networks[k].links_t.p0.filter(regex='C&I').filter(regex='Import').values.flatten() @ np.array(cget.GetGridCFE(solved_networks[k], ci_identifier='C&I', run=run))
+            #     ) 
+            #     for k in solved_networks.keys()
+            # ],
         })
         .pipe(
             cget.split_scenario_col,

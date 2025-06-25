@@ -197,6 +197,23 @@ def get_emissions(n: pypsa.Network) -> float:
         .sum()
     )
 
+def get_ci_parent_emissions(n: pypsa.Network, nodes_with_ci_loads) -> float:
+    '''Returns hourly emissions in tonnes CO2-eq for the C&I bus
+    '''
+    ci_parent_generators = n.generators[n.generators.index.str.contains(nodes_with_ci_loads)]
+    ci_parent_generators_t = n.generators_t.p[ci_parent_generators.index]
+    ci_parent_load = 1/(n.loads_t.p.filter(regex=nodes_with_ci_loads).filter(regex='^(?!.*C&I)'))
+    emissions = (
+        (
+            ci_parent_generators_t
+            / ci_parent_generators.efficiency 
+            * ci_parent_generators.carrier.map(n.carriers.co2_emissions)
+        )
+        .sum(axis=1)
+    )
+    emissions_intensity = emissions * ci_parent_load.squeeze()
+    return emissions_intensity
+
 
 def get_unit_cost(n : pypsa.Network) -> pd.DataFrame:
     '''Returns the unit cost in $/MWh for each component and carrier
