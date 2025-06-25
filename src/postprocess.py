@@ -1382,7 +1382,6 @@ def plot_ci_unit_cost_of_electricity(solved_networks, path_to_run_dir, work_sans
         .rename(index={0:'100% RES'})
         # .set_index('100% RES')
     )
-    print(res_unit_cost)
 
     cfe_unit_cost = (
         unit_cost
@@ -1482,7 +1481,6 @@ def plot_ci_unit_cost_of_electricity(solved_networks, path_to_run_dir, work_sans
         .rename(index={0:'100% RES'})
         # .set_index('100% RES')
     )
-    print(res_unit_cost)
 
     cfe_unit_cost = (
         unit_cost
