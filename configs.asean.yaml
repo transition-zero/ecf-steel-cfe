@@ -52,7 +52,7 @@ constraints:
   policy_targets:
     enable: true
   cofiring_ccs_gen:
-    enable: true
+    enable: false
     clean_generator:
       - 'MYSPE-coal-biomass-cofiring-clean-ext-2030'
       - 'MYSPE-coal-ammonia-cofiring-clean-ext-2030'
@@ -70,7 +70,7 @@ constraints:
     generator: 'example01'
     fraction: 0.2
   min_utilisation_links:
-    enable: false
+    enable: true
     carriers: 'BTMSL'
   max_utilisation_links:
     enable: false
@@ -83,7 +83,7 @@ constraints:
     carriers: 'solar'
 
 model_runs:
-  - name: MYSSK_fullCFE_22Jun_TP2_redox
+  - name:  MYSSK_fullCFE_28Jun_TP2
     palette: palette_2
     stock_model: ASEAN
     select_nodes:
@@ -127,6 +127,7 @@ technology_palette:
     - wind-onshore
     - battery
     - long-duration-storage
+    - hydro-storage
   palette_3:
     - photovoltaic-unspecified
     - wind-offshore-unspecified
@@ -135,6 +136,10 @@ technology_palette:
     - long-duration-storage
     - coal-biomass-cofiring-fossil
     - coal-biomass-cofiring-clean
+    - combined-cycle-hydrogen-fossil
+    - combined-cycle-hydrogen-clean
+    - coal-ammonia-cofiring-fossil
+    - coal-ammonia-cofiring-clean
 
 solver:
   name: gurobi
