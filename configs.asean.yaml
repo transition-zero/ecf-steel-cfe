@@ -41,30 +41,45 @@ constraints:
   bus_individual_self_sufficiency: # Bus self-sufficiency constraint, individually set
     enable: false
   max_utilisation: # maximum annual generation for a carrier
-    enable: true
+    enable: false
     fraction: 0.85
-    carriers:
-      - 'coal'
-      - 'gas'
-      - 'oil'
-      - 'geothermal'
-      - 'biomass'
+    carriers: 'coal|gas|oil|geothermal|biomass' 
   policy_targets:
     enable: true
   cofiring_ccs_gen:
-    enable: false
-    clean_generator:
-      - 'MYSPE-coal-biomass-cofiring-clean-ext-2030'
-      - 'MYSPE-coal-ammonia-cofiring-clean-ext-2030'
-      - 'MYSPE-combined-cycle-hydrogen-clean-ext-2030'
-      - 'MYSSK-combined-cycle-hydrogen-clean-ext-2030'
-      - 'SGPXX-combined-cycle-hydrogen-clean-ext-2030'
-    fossil_generator:
-      - 'MYSPE-coal-biomass-cofiring-fossil-ext-2030'
-      - 'MYSPE-coal-ammonia-cofiring-fossil-ext-2030'
-      - 'MYSPE-combined-cycle-hydrogen-fossil-ext-2030'
-      - 'MYSSK-combined-cycle-hydrogen-fossil-ext-2030'
-      - 'SGPXX-combined-cycle-hydrogen-fossil-ext-2030'
+    enable: true
+    clean_generator: ['MYSPE-coal-biomass-cofiring-clean-ext-2030',
+                      'MYSPE-coal-ammonia-cofiring-clean-ext-2030',
+                      'MYSPE-combined-cycle-hydrogen-clean-ext-2030',
+                      'MYSSK-combined-cycle-hydrogen-clean-ext-2030',
+                      'SGPXX-combined-cycle-hydrogen-clean-ext-2030',
+                      # 'MYSPE C&I Grid-coal-biomass-cofiring-clean-ext-2030-PPA-Clean',
+                      # 'MYSPE C&I Grid-coal-ammonia-cofiring-clean-ext-2030-PPA-Clean',
+                      # 'MYSPE C&I Grid-combined-cycle-hydrogen-clean-ext-2030-PPA-Clean',
+                      # 'MYSSK C&I Grid-combined-cycle-hydrogen-clean-ext-2030-PPA-Clean',
+                      # 'SGPXX C&I Grid-combined-cycle-hydrogen-clean-ext-2030-PPA-Clean',
+                      ]
+      # - 'MYSPE-coal-biomass-cofiring-clean-ext-2030'
+      # - 'MYSPE-coal-ammonia-cofiring-clean-ext-2030'
+      # - 'MYSPE-combined-cycle-hydrogen-clean-ext-2030'
+      # - 'MYSSK-combined-cycle-hydrogen-clean-ext-2030'
+      # - 'SGPXX-combined-cycle-hydrogen-clean-ext-2030'
+    fossil_generator: ['MYSPE-coal-biomass-cofiring-fossil-ext-2030',
+                      'MYSPE-coal-ammonia-cofiring-fossil-ext-2030',
+                      'MYSPE-combined-cycle-hydrogen-fossil-ext-2030',
+                      'MYSSK-combined-cycle-hydrogen-fossil-ext-2030',
+                      'SGPXX-combined-cycle-hydrogen-fossil-ext-2030',
+                      # 'MYSPE C&I Grid-coal-biomass-cofiring-clean-ext-2030-PPA-Fossil',
+                      # 'MYSPE C&I Grid-coal-ammonia-cofiring-clean-ext-2030-PPA-Fossil',
+                      # 'MYSPE C&I Grid-combined-cycle-hydrogen-clean-ext-2030-PPA-Fossil',
+                      # 'MYSSK C&I Grid-combined-cycle-hydrogen-clean-ext-2030-PPA-Fossil',
+                      # 'SGPXX C&I Grid-combined-cycle-hydrogen-clean-ext-2030-PPA-Fossil',
+                      ]
+      # - 'MYSPE-coal-biomass-cofiring-fossil-ext-2030'
+      # - 'MYSPE-coal-ammonia-cofiring-fossil-ext-2030'
+      # - 'MYSPE-combined-cycle-hydrogen-fossil-ext-2030'
+      # - 'MYSSK-combined-cycle-hydrogen-fossil-ext-2030'
+      # - 'SGPXX-combined-cycle-hydrogen-fossil-ext-2030'
   min_annual_generation:
     enable: false
     generator: 'example01'
@@ -79,11 +94,69 @@ constraints:
     enable: false
     carriers: 'solar'
   max_utilisation_generator: # fraction is predefined in network
-    enable: false
-    carriers: 'solar'
+    enable: true
+    carriers: 'coal|gas|oil|geothermal|biomass' 
 
 model_runs:
-  - name:  MYSSK_fullCFE_28Jun_TP2
+  # - name:  MYSPE_14Jul_TP1_newDR_withWON
+  #   palette: palette_1
+  #   stock_model: ASEAN
+  #   select_nodes:
+  #     - SGPXX
+  #     - MYSPE
+  #     - MYSSK
+  #     - MYSSH
+  #     - IDNKA
+  #     - THASO
+  #     - THACE
+  #     - THANO
+  #     - BTMSL
+  #   nodes_with_ci_load:
+  #     # - SGPXX # voluntary involvement on CFE: 4.27% (0.0427)
+  #     - MYSPE # voluntary involvement on CFE: 5.81% (0.0581)
+  #     # - MYSSK # voluntary involvement on CFE: 3.28% (0.0328)
+  #   cfe_score:
+  #     - 0.70
+  #     - 0.80
+  #     - 0.90
+  #     - 0.95
+  #     - 0.99
+  #     - 1.00
+  #   ci_load_fraction: 0.0581 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+  #   allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
+  #   allow_generation_expansion: false # if true, the model will allow most of generation expansion, if false, will leave as it
+  #   allow_storage_expansion: false # if true, the model will allow most of storage expansion, if false, will leave as it
+  #   backstop: false # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
+  # - name:  MYSSK_14Jul_TP1_newDR_withWON
+  #   palette: palette_1
+  #   stock_model: ASEAN
+  #   select_nodes:
+  #     - SGPXX
+  #     - MYSPE
+  #     - MYSSK
+  #     - MYSSH
+  #     - IDNKA
+  #     - THASO
+  #     - THACE
+  #     - THANO
+  #     - BTMSL
+  #   nodes_with_ci_load:
+  #     # - SGPXX # voluntary involvement on CFE: 4.27% (0.0427)
+  #     # - MYSPE # voluntary involvement on CFE: 5.81% (0.0581)
+  #     - MYSSK # voluntary involvement on CFE: 3.28% (0.0328)
+  #   cfe_score:
+  #     - 0.70
+  #     - 0.80
+  #     - 0.90
+  #     - 0.95
+  #     - 0.99
+  #     - 1.00
+  #   ci_load_fraction: 0.0328 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+  #   allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
+  #   allow_generation_expansion: false # if true, the model will allow most of generation expansion, if false, will leave as it
+  #   allow_storage_expansion: false # if true, the model will allow most of storage expansion, if false, will leave as it
+  #   backstop: false # if true, the model will run with a backstop technology (i.e., a generator with infinite supply potential)
+  - name:  SGPXX_14Jul_TP2_newDR_noWON
     palette: palette_2
     stock_model: ASEAN
     select_nodes:
@@ -97,9 +170,9 @@ model_runs:
       - THANO
       - BTMSL
     nodes_with_ci_load:
-      # - SGPXX # voluntary involvement on CFE: 4.27% (0.0427)
+      - SGPXX # voluntary involvement on CFE: 4.27% (0.0427)
       # - MYSPE # voluntary involvement on CFE: 5.81% (0.0581)
-      - MYSSK # voluntary involvement on CFE: 3.28% (0.0328)
+      # - MYSSK # voluntary involvement on CFE: 3.28% (0.0328)
     cfe_score:
       - 0.70
       - 0.80
@@ -107,7 +180,7 @@ model_runs:
       - 0.95
       - 0.99
       - 1.00
-    ci_load_fraction: 0.0328 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+    ci_load_fraction: 0.0427 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
     allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
     allow_generation_expansion: false # if true, the model will allow most of generation expansion, if false, will leave as it
     allow_storage_expansion: false # if true, the model will allow most of storage expansion, if false, will leave as it
@@ -119,12 +192,12 @@ technology_palette:
   palette_1:
     - photovoltaic-unspecified
     - wind-offshore-unspecified
-    - wind-onshore
+    # - wind-onshore
     - battery
   palette_2:
     - photovoltaic-unspecified
     - wind-offshore-unspecified
-    - wind-onshore
+    # - wind-onshore
     - battery
     - long-duration-storage
     - hydro-storage
@@ -134,6 +207,7 @@ technology_palette:
     - wind-onshore
     - battery
     - long-duration-storage
+    - hydro-storage
     - coal-biomass-cofiring-fossil
     - coal-biomass-cofiring-clean
     - combined-cycle-hydrogen-fossil
