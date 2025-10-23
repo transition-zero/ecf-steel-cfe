@@ -7,12 +7,13 @@ def get_cfe_score_ts(n, run, ci_identifier='C&I'):
     '''
     GridCFE = GetGridCFE(n, ci_identifier=ci_identifier, run=run)
     CI_Demand = n.loads_t.p.filter(regex=ci_identifier).sum(axis=1)
-    CI_PPA = n.generators_t.p.filter(regex=ci_identifier).sum(axis=1)
+    CI_PPA_Clean = n.generators_t.p.filter(regex=ci_identifier).sum(axis=1)
+    CI_PPA_Fossil = n.generators_t.p.filter(regex=ci_identifier).sum(axis=1)
     CI_GridExport = n.links_t.p0.filter(regex='Exports').sum(axis=1)
     CI_GridImport = n.links_t.p0.filter(regex='Imports').sum(axis=1)
     CI_StorageDischarge = n.links_t.p0.filter(regex='Discharge').sum(axis=1)
     CI_StorageCharge = n.links_t.p0.filter(regex='Charge').sum(axis=1)
-    return (( CI_PPA - CI_GridExport + (CI_GridImport * list(GridCFE) ) - CI_StorageCharge + CI_StorageDischarge ) / CI_Demand).to_frame(name='CFE Score')
+    return (( CI_PPA_Clean + CI_PPA_Fossil - CI_GridExport + (CI_GridImport * list(GridCFE) ) - CI_StorageCharge + CI_StorageDischarge ) / CI_Demand).to_frame(name='CFE Score')
 
 
 def get_ci_cost_summary(n : pypsa.Network) -> pd.DataFrame:

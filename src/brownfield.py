@@ -33,7 +33,7 @@ def SetupBrownfieldNetwork(run, configs) -> pypsa.Network:
     """
     
     
-    if configs["model_runs"][0]["stock_model"] == "ASEAN":
+    if configs["model_runs"][0]["stock_model"] == "ASEAN_yaml":
     # load the stock model from tza-pypsa 
         network = (
             Model.load_model(
@@ -48,17 +48,17 @@ def SetupBrownfieldNetwork(run, configs) -> pypsa.Network:
         )
     else: 
         network = (
-        Model.load_csv_from_dir(
-            configs['paths']['path_to_model'], 
-            #run['stock_model'], 
-            frequency = configs['global_vars']['frequency'],
-            timesteps = configs['global_vars']['timesteps'],
-            #select_nodes=configs['global_vars']['select_nodes'], 
-            year=[ configs['global_vars']['year'] ],
-            #backstop=run['backstop'],
-            set_global_constraints=configs['global_vars']['set_global_constraints'],
+            Model.load_csv_from_dir(
+                configs['paths']['path_to_model'], 
+                #run['stock_model'],
+                frequency = configs['global_vars']['frequency'],
+                timesteps = configs['global_vars']['timesteps'],
+                #select_nodes=configs['global_vars']['select_nodes'], 
+                year=[ configs['global_vars']['year'] ],
+                #backstop=run['backstop'],
+                set_global_constraints=configs['global_vars']['set_global_constraints'],
+            )
         )
-    )
 
     # if expansion is set to True, set p_nom_extendable to True for generators and storage units
     # otherwise if False, leaves propreties as they are (in case some are already set to True and others to False)
@@ -145,8 +145,13 @@ def ApplyBrownfieldConstraints(network, run, configs) -> pypsa.Network:
 
     # Cofiring CCS generation constraint
     if configs["constraints"]["cofiring_ccs_gen"]["enable"]:
-        constr_cofiring_ccs_generation_join_plant(network, 
-                                                clean_generator = configs["constraints"]["cofiring_ccs_gen"]["clean_generator"],
-                                                fossil_generator = configs["constraints"]["cofiring_ccs_gen"]["fossil_generator"])
-    
+        if run["palette"] == "palette_3":
+            constr_cofiring_ccs_generation_join_plant(network,
+                                                        clean_generator = configs["constraints"]["cofiring_ccs_gen"]["clean_generator_"+str(run["nodes_with_ci_load"])],
+                                                        fossil_generator = configs["constraints"]["cofiring_ccs_gen"]["fossil_generator_"+str(run["nodes_with_ci_load"])])
+        else:          
+            constr_cofiring_ccs_generation_join_plant(network,
+                                                        clean_generator = configs["constraints"]["cofiring_ccs_gen"]["clean_generator"],
+                                                        fossil_generator = configs["constraints"]["cofiring_ccs_gen"]["fossil_generator"])                
+
     return network
