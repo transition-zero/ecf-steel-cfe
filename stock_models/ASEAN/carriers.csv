@@ -1,0 +1,58 @@
+Carrier,co2_emissions,color,nice_name,max_growth,max_relative_growth
+biomass,0,teal,Biomass,inf,0
+bioenergy,0,teal,Bioenergy,inf,0
+gas,0.2,grey,Gas,inf,0
+coal,0.34,black,Coal,inf,0
+diesel,0.26,darkgray,Diesel,inf,0
+geothermal,0,brown,Geothermal,inf,0
+hydro,0,deepskyblue,Hydro,inf,0
+oil,0.26,gainsboro,Oil,inf,0
+solar,0,gold,Solar,inf,0
+waste,0,peru,Waste,inf,0
+on-wind,0,turquoise,Onshore Wind,inf,0
+off-wind,0,mediumturquoise,Offshore Wind,inf,0
+battery,0,plum,Battery,inf,0
+long-duration-storage,0,thistle,Long Duration Storage,inf,0
+hydro-storage,0,orchid,Pumped Hydro,inf,0
+hydrogen,0,mediumorchid,hydrogen,inf,0
+ammonia,0,darkorchid,Ammonia,inf,0
+gas-sequestered,0,mediumorchid,sequestered part of CCGT with CCS,inf,0
+gas-leaked,0.2,lightgrey,leaked part of CCGT with CCS,inf,0
+backstop,0,pink,Backstop,inf,0
+transmission-HVAC-overhead,0,red,Transmission,inf,0
+AC,0,red,Transmission,inf,0
+interconnector-BRN-MYSSK,0,red,Transmission,inf,0
+interconnector-IDNJW-IDNKA,0,red,Transmission,inf,0
+interconnector-IDNJW-IDNNU,0,red,Transmission,inf,0
+interconnector-IDNJW-IDNSM,0,red,Transmission,inf,0
+interconnector-IDNKA-MYSSH,0,red,Transmission,inf,0
+interconnector-IDNKA-MYSSK,0,red,Transmission,inf,0
+interconnector-IDNML-IDNPP,0,red,Transmission,inf,0
+interconnector-IDNML-IDNSL,0,red,Transmission,inf,0
+interconnector-IDNNU-IDNSL,0,red,Transmission,inf,0
+interconnector-IDNSM-MYSPE,0,red,Transmission,inf,0
+interconnector-IDNSM-SGP,0,red,Transmission,inf,0
+interconnector-LAO-MMR,0,red,Transmission,inf,0
+interconnector-THANO-MMR,0,red,Transmission,inf,0
+interconnector-LAO-VNMNO,0,red,Transmission,inf,0
+interconnector-LAO-VNMCE,0,red,Transmission,inf,0
+interconnector-MYSPE-MYSSK,0,red,Transmission,inf,0
+interconnector-MYSSH-MYSSK,0,red,Transmission,inf,0
+interconnector-MYSSH-PHLLU,0,red,Transmission,inf,0
+interconnector-MYSPE-SGP,0,red,Transmission,inf,0
+interconnector-KHM-LAO,0,red,Transmission,inf,0
+interconnector-KHM-THACE,0,red,Transmission,inf,0
+interconnector-KHM-VNMSO,0,red,Transmission,inf,0
+interconnector-PHLLU-PHLVI,0,red,Transmission,inf,0
+interconnector-IDNKA-IDNSL,0,red,Transmission,inf,0
+interconnector-PHLMI-PHLVI,0,red,Transmission,inf,0
+interconnector-VNMCE-VNMNO,0,red,Transmission,inf,0
+interconnector-VNMCE-VNMSO,0,red,Transmission,inf,0
+interconnector-THANO-THACE,0,red,Transmission,inf,0
+interconnector-THACE-THASO,0,red,Transmission,inf,0
+interconnector-THASO-MYSPE,0,red,Transmission,inf,0
+interconnector-THANO-LAO,0,red,Transmission,inf,0
+interconnector-VNMSO-SGP,0,red,Transmission,inf,0
+interconnector-KHM-SGP,0,red,Transmission,inf,0
+interconnector-BTMSL-SGP,0,red,Transmission,inf,0
+slr-btmsl,0,gold,Solar Batam,inf,0

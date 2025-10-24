@@ -1,0 +1,17 @@
+StorageUnit,bus,control,type,p_nom,p_nom_mod,p_nom_extendable,p_nom_min,p_nom_max,p_min_pu,p_max_pu,p_set,q_set,sign,carrier,spill_cost,marginal_cost,marginal_cost_quadratic,marginal_cost_storage,capital_cost,active,build_year,lifetime,state_of_charge_initial,state_of_charge_initial_per_period,state_of_charge_set,cyclic_state_of_charge,cyclic_state_of_charge_per_period,max_hours,efficiency_store,efficiency_dispatch,standing_loss,inflow,annual_fixed_costs,total_capital_cost
+IDNKA-lithium-ion-ext-2030,IDNKA,PQ,,0,0,TRUE,0,inf,-1,1,0,0,1,battery,0,0,0,0,54699.14147,TRUE,2030,15,0,FALSE,,TRUE,TRUE,6,0.95,0.95,0.004,0,10500,327923.183
+MYSPE-lithium-ion-ext-2030,MYSPE,PQ,,0,0,TRUE,0,inf,-1,1,0,0,1,battery,0,2.04,0,0,67005.34064,TRUE,2030,15,0,FALSE,,TRUE,TRUE,6,0.95,0.95,0.004,0,11873,409039
+MYSSK-lithium-ion-ext-2030,MYSSK,PQ,,0,0,TRUE,0,inf,-1,1,0,0,1,battery,0,2.04,0,0,67005.34064,TRUE,2030,15,0,FALSE,,TRUE,TRUE,6,0.95,0.95,0.004,0,11873,409039
+MYSSH-lithium-ion-ext-2030,MYSSH,PQ,,0,0,TRUE,0,inf,-1,1,0,0,1,battery,0,2.04,0,0,67005.34064,TRUE,2030,15,0,FALSE,,TRUE,TRUE,6,0.95,0.95,0.004,0,11873,409039
+SGPXX-lithium-ion-ext-2030,SGPXX,PQ,,250,0,TRUE,250,inf,-1,1,0,0,1,battery,0,2.04,0,0,67005.34064,TRUE,2030,15,0,FALSE,,TRUE,TRUE,6,0.95,0.95,0.004,0,11873,409039
+THANO-lithium-ion-ext-2030,THANO,PQ,,0,0,TRUE,0,inf,-1,1,0,0,1,battery,0,0,0,0,45296.69687,TRUE,2030,15,0,FALSE,,TRUE,TRUE,6,0.95,0.95,0.004,0,5405.5,295961.5915
+THASO-lithium-ion-ext-2030,THASO,PQ,,0,0,TRUE,0,inf,-1,1,0,0,1,battery,0,0,0,0,45296.69687,TRUE,2030,15,0,FALSE,,TRUE,TRUE,6,0.95,0.95,0.004,0,5405.5,295961.5915
+THACE-lithium-ion-ext-2030,THACE,PQ,,0,0,TRUE,0,inf,-1,1,0,0,1,battery,0,0,0,0,45296.69687,TRUE,2030,15,0,FALSE,,TRUE,TRUE,6,0.95,0.95,0.004,0,5405.5,295961.5915
+THANO-hydro-pumped-storage-ext-2030,THANO,PQ,,1171,0,FALSE,1171,inf,-1,1,0,0,1,hydro-storage,0,1.7,0,0,376235.5047,TRUE,2030,60,0,FALSE,,TRUE,TRUE,10,0.8,0.8,0.01,0,49510,2795000
+THACE-hydro-pumped-storage-ext-2030,THACE,PQ,,360,0,FALSE,360,inf,-1,1,0,0,1,hydro-storage,0,1.7,0,0,376235.5047,TRUE,2030,60,0,FALSE,,TRUE,TRUE,10,0.8,0.8,0.01,0,49510,2795000
+MYSPE-hydro-pumped-storage-ext-2030,MYSPE,PQ,,0,0,FALSE,0,inf,-1,1,0,0,1,hydro-storage,0,1.06,0,0,179763.9786,TRUE,2030,60,0,FALSE,,TRUE,TRUE,10,0.8,0.8,0.01,0,21145,1356919
+MYSSK-hydro-pumped-storage-ext-2030,MYSSK,PQ,,0,0,FALSE,0,inf,-1,1,0,0,1,hydro-storage,0,1.06,0,0,179763.9786,TRUE,2030,60,0,FALSE,,TRUE,TRUE,10,0.8,0.8,0.01,0,21145,1356919
+MYSPE-redox-flow-ext-2030,MYSPE,PQ,,0,0,TRUE,0,0,-1,1,0,0,1,long-duration-storage,0,0.34,0,0,75489.6691,TRUE,2030,12,0,FALSE,,TRUE,TRUE,12,1,0.65,0.004,0,12925,408682
+MYSSK-redox-flow-ext-2030,MYSSK,PQ,,0,0,TRUE,0,0,-1,1,0,0,1,long-duration-storage,0,0.34,0,0,75489.6691,TRUE,2030,12,0,FALSE,,TRUE,TRUE,12,1,0.65,0.004,0,12925,408682
+MYSSH-redox-flow-ext-2030,MYSSH,PQ,,0,0,TRUE,0,0,-1,1,0,0,1,long-duration-storage,0,0.34,0,0,75489.6691,TRUE,2030,12,0,FALSE,,TRUE,TRUE,12,1,0.65,0.004,0,12925,408682
+SGPXX-redox-flow-ext-2030,SGPXX,PQ,,0,0,TRUE,0,0,-1,1,0,0,1,long-duration-storage,0,0.34,0,0,75489.6691,TRUE,2030,12,0,FALSE,,TRUE,TRUE,12,1,0.65,0.004,0,12925,408682

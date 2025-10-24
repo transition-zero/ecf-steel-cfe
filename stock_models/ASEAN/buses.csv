@@ -1,0 +1,9 @@
+Bus,v_nom,type,x,y,carrier,unit,v_mag_pu_set,v_mag_pu_min,v_mag_pu_max,control,generator,sub_network,min_self_sufficiency
+IDNKA,1.0,,113.995,-0.211,AC,,1.0,0.0,inf,PQ,,,0.6
+MYSPE,1.0,,102.179,4.035,AC,,1.0,0.0,inf,PQ,,,0.6
+MYSSK,1.0,,113.336,2.599,AC,,1.0,0.0,inf,PQ,,,0.6
+MYSSH,1.0,,117.116,5.336,AC,,1.0,0.0,inf,PQ,,,0.6
+SGPXX,1.0,,103.8198,1.3521,AC,,1.0,0.0,inf,PQ,,,0.6
+THANO,1.0,,101.42,16.921,AC,,1.0,0.0,inf,PQ,,,0.6
+THASO,1.0,,99.775,8.101,AC,,1.0,0.0,inf,PQ,,,0.6
+THACE,1.0,,100.5136,13.842,AC,,1.0,0.0,inf,PQ,,,0.6

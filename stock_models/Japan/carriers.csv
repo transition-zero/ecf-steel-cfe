@@ -1,0 +1,26 @@
+Carrier,color,co2_emissions,nice_name,max_growth
+Coal,#322f34,0.36,Coal,inf
+Gas,#bababa,0.198,Gas,inf
+Oil,#5d407c,0.2571,Oil,inf
+GasCCSLeaked,#d9d9d9,0.198,Gas CCS: Leaked Component,inf
+BlueNH3,#d9a88b,0,Coal & blue NH3: NH3,inf
+BlueH2,#f3f3f3,0,Gas & blue H2: H2,inf
+GreenNH3,#d9a88b,0,Coal & green NH3: NH3,inf
+GreenH2,#f3f3f3,0,Gas & green H2: H2,inf
+Nuclear,#ee9dda,0,Nuclear,inf
+Biomass,#e25329,0,Biomass,inf
+Geothermal,#f75726,0,Geothermal,inf
+HydroConventional,#8292e8,0,Hydro conventional,inf
+SolarGrid,#ffe19b,0,Solar,inf
+OffshoreWind,#66dad0,0,Offshore Wind,inf
+OnshoreWind,#99e6df,0,Onshore Wind,inf
+PumpedHydro,#a5d1f9,0,Pumped hydro,inf
+Batteries,#c3e0fb,0,Batteries,inf
+Transmission,#ba63da,0,Transmission,inf
+GasCCSSequestered,#d9d9d9,0,Gas CCS: Sequestered component,inf
+BlueNH3_Coal,#322f34,0.36,Coal & blue NH3: Coal,inf
+BlueH2_Gas,#bababa,0.198,Gas & blue H2: Gas,inf
+GreenNH3_Coal,#322f34,0.36,Coal & green NH3: Coal,inf
+GreenH2_Gas,#bababa,0.198,Gas & green H2: Gas,inf
+AC,#ba63da,0,Transmission,inf
+LAES,#c3e0fb,0,Liquid Air Energy Storage,inf
