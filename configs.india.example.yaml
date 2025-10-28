@@ -133,8 +133,8 @@ technology_palette:
     - combined-cycle-h2
 
 solver:
-  name: gurobi
-  options: gurobi-default
+  name: highs
+  options: highs-default
 
 solver_options:
   highs-default:

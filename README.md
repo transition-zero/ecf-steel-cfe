@@ -36,6 +36,13 @@ Our study employs energy system modelling using the widely adopted [PyPSA](https
 ## Reproducing this work
 
 ### Getting started
+
+You can clone the repository using the `git` command line
+
+```bash
+git clone https://github.com/transition-zero/tza-google-cfe
+```
+
 You can set up the project environment using either `uv` or `mamba`. Following the instructions below to get started. 
 
 Using `uv`:
@@ -57,7 +64,7 @@ On Windows
 
 Install depedencies: 
 ```bash 
-uv add -r pyproject.toml
+uv sync
 ```
 
 Using `mamba`: 
