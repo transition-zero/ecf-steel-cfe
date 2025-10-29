@@ -34,7 +34,13 @@ PyPSA-Japan runs at an hourly resolution (i.e., 8760 timesteps). Other temporal 
 
 ### Data sources
 
-For input data sources included in the PyPSA-Japan model please refer to the main Japan CFE modelling report by Transition Zero: Modelling 24/7 Carbon Free
+- **Thermal, hydro and renewable plant capacities**: Power plant capacities are taken from OCCTO annual reports and projections. Pipeline plants for 2030 are projected based on OCCTO’s announced targets, adjusted conservatively to reflect historical build rates.
+- **Solar, onshore wind, offshore wind and hydro capacity factors**: We take a combination of Transition Zero in-house methodology for estimating hourly capacity factors for variable renewables and consolidate these with OCCTO reports on current wind/solar/hydro capacity factors.
+- **Technology costs**: For the year 2030, Japanese government’s [Ministry of Energy Trade and Economy] most recent technology cost projections are employed.
+- **Commodity prices**: Fuel prices derived from METI projections in 2024 (url).
+- **2030 demand**: Total demand in 2030 is derived in-house at Transition Zero, whilst taking note of other sources of Japanese demand growth [METI, OCCTO]. The demand (load) profile is taken from OCCTO for the most recent historical year (2024).
+
+For additional information on input data sources included in the PyPSA-Japan model please refer to the main Japan CFE modelling report by Transition Zero: Modelling 24/7 Carbon Free
 Electricity (CFE) in Asia - Results for Japan (https://blog.transitionzero.org/hubfs/Analysis/CFE%20Reports/TransitionZero%20-%2024-7%20CFE%20-%20Report%20-%20Japan%20(English).pdf).
 
 ### Policy targets
