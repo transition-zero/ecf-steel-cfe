@@ -22,7 +22,6 @@ global_vars:
   year: 2030 # year of the model run
   frequency: 1h # time resolution of the model run (should be 1h for CFE)
   timesteps: 8760 # number of timesteps in the model run (e.g., 24 = 1 day)
-  solver: gurobi # solver used to solve the optimization problem
   ci_label: C&I # this is a unique identifier for all CFE attributes in the network
   enable_fossil_charging: false # if true, the model will allow batteries to be charged by fossil fuels
   set_global_constraints: false # if true, the model will set global constraints from tza-pypsa (keep False here)

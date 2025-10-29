@@ -101,6 +101,8 @@ python main.py build-brownfield --config configs.yaml
 You can control which scenarios you want to run using the `configs.yaml` inside the `run` directory.
 Example config files are provided for each country explored in this CFE project (e.g. for Japan an example for Hokkaido (JPN01) is provided and can be used as a template for running any/all other nodes in Japan).
 
+In the config files provided, HiGHS - an open source linear optimisation solver - is currently set as the optimisation engine for solving each stock model. In the CFE project, Gurobi was also used and parameters are also provided in each config file.
+
 ### Want to use, develop or support this project?
 We strongly welcome anyone interested in collaborating on this or future related projects. If you have any ideas, suggestions or encounter problems, feel invited to file issues or make pull requests on GitHub. To discuss ideas for the project, please contact [@Abhishek Shivakumar](mailto:abhishek@transitionzero.org).
 
