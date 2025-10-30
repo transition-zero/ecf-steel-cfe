@@ -113,5 +113,3 @@ We relied on several excellent previous analyses to do this work. In particular,
 - TU Berlin's study of 24/7 Carbon-Free Energy procurement in Europe ([link](https://github.com/PyPSA/247-cfe)).
 - The Zero Lab's (Princeton University) analysis of electricity System and market impacts of time-based attribute trading and 24/7 carbon-free electricity procurement in the USA ([link](https://acee.princeton.edu/24-7/))
 
-## Licence
-TODO
