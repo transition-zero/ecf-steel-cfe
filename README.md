@@ -118,23 +118,17 @@ Our methodological approach is focused on the assessment of system-level costs a
 
 It builds on a robust body of literature and cutting-edge modelling tools. In particular we were influenced by,
 
-TU Berlin and affiliated researchers:
+- TU Berlin and affiliated researchers:
+  - Riepin, I., & Brown, T. (2022). System-level impacts of 24/7 carbon-free electricity procurement in Europe. Zenodo. https://doi.org/10.5281/zenodo.7180098
+  - Riepin, I., & Brown, T. (2023). The value of space-time load-shifting flexibility for 24/7 carbon-free electricity procurement. Zenodo. https://doi.org/10.5281/zenodo.8185850
 
-Riepin, I., & Brown, T. (2022). System-level impacts of 24/7 carbon-free electricity procurement in Europe. Zenodo. https://doi.org/10.5281/zenodo.7180098
+- Princeton University (ZERO Lab):
+  - Xu, Q.,Manocha, A.,Patankar, N., and Jenkins, J.D., System-level Impacts of 24/7 Carbon-free Electricity Procurement, Zero-carbon Energy Systems Research and Optimization Laboratory, Princeton University, Princeton, NJ, 16 November 2021.
+  - Xu, Q., & Jenkins, J. D. (2022). Electricity System and Market Impacts of Time-based Attribute Trading and 24/7 Carbon-free Electricity Procurement. Zenodo. https://doi.org/10.5281/zenodo.7082212
 
-Riepin, I., & Brown, T. (2023). The value of space-time load-shifting flexibility for 24/7 carbon-free electricity procurement. Zenodo. https://doi.org/10.5281/zenodo.8185850
-
-Princeton University (ZERO Lab):
-
-Xu, Q.,Manocha, A.,Patankar, N., and Jenkins, J.D., System-level Impacts of 24/7 Carbon-free Electricity Procurement, Zero-carbon Energy Systems Research and Optimization Laboratory, Princeton University, Princeton, NJ, 16 November 2021.
-
-Xu, Q., & Jenkins, J. D. (2022). Electricity System and Market Impacts of Time-based Attribute Trading and 24/7 Carbon-free Electricity Procurement. Zenodo. https://doi.org/10.5281/zenodo.7082212
-
-International Energy Agency (IEA):
-
-Regional insights and sectoral analyses
-
-IEA (2022), Advancing Decarbonisation through Clean Electricity Procurement, IEA, Paris. https://www.iea.org/reports/advancing-decarbonisation-through-clean-electricity-procurement
+- International Energy Agency (IEA):
+  - Regional insights and sectoral analyses
+  - IEA (2022), Advancing Decarbonisation through Clean Electricity Procurement, IEA, Paris. https://www.iea.org/reports/advancing-decarbonisation-through-clean-electricity-procurement
 
 Our in-house modelling leverages PyPSA (Python for Power System Analysis), an open-source framework for simulating and optimizing energy systems. This platform enables high-resolution, hourly modelling of decarbonised power systems, adapted for our country-specific analyses. We are grateful to all contributors in the open modelling community, whose tools and insights strengthen the analytical foundation for achieving global CFE goals.
 
