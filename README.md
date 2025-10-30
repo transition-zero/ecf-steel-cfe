@@ -106,10 +106,32 @@ In the config files provided, HiGHS - an open source linear optimisation solver 
 ### Want to use, develop or support this project?
 We strongly welcome anyone interested in collaborating on this or future related projects. If you have any ideas, suggestions or encounter problems, feel invited to file issues or make pull requests on GitHub. To discuss ideas for the project, please contact [@Abhishek Shivakumar](mailto:abhishek@transitionzero.org).
 
-## Similar works
-We relied on several excellent previous analyses to do this work. In particular, we were influenced by: 
+## Acknowledgements
 
-- Riepin and Brown (2024) On the means, costs, and system-level impacts of 24/7 carbon-free energy procurement ([link](https://doi.org/10.1016/j.esr.2024.101488)).
-- TU Berlin's study of 24/7 Carbon-Free Energy procurement in Europe ([link](https://github.com/PyPSA/247-cfe)).
-- The Zero Lab's (Princeton University) analysis of electricity System and market impacts of time-based attribute trading and 24/7 carbon-free electricity procurement in the USA ([link](https://acee.princeton.edu/24-7/))
+We gratefully acknowledge the contributions of colleagues across TransitionZero — both current and former — who supported this work through
+communications, analysis, modelling infrastructure, and operational coordination. These include Alice Apsey, Ollie Bell, Duncan Byrne, Khandekar
+Mahammad Galib, Matthew Gray, Michael Guzzardi, Tim Haines, Anna Hartley, John Heal, Simone Huber, Thomas Kouroughli, Alex Luta, Aman Majid,
+Grace Mitchell, Irfan Mohamed, Joe O’Connor, Sabina Parvu, Handriyanti Diah Puspitarini, Abhishek Shivakumar, Stephanie Stevenson, Isabella
+Söldner-Rembold, Isabella Suarez, Dan Welsby, and Thu Vu.
+
+This work was made possible through the funding from Google.org.
+
+Our methodological approach is focused on the assessment of system-level costs and benefits of 24/7 Carbon-Free Electricity (CFE) procurement in Japan, India, Singapore, Taiwan, and Malaysia.
+
+It builds on a robust body of literature and cutting-edge modelling tools. In particular we were influenced by:
+
+TU Berlin and affiliated researchers:
+o Riepin, I., & Brown, T. (2022). System-level impacts of 24/7 carbon-free electricity procurement in Europe. Zenodo. https://doi.org/10.5281/zenodo.7180098
+o Riepin, I., & Brown, T. (2023). The value of space-time load-shifting flexibility for 24/7 carbon-free electricity procurement. Zenodo. https://doi.org/10.5281/zenodo.8185850
+
+Princeton University (ZERO Lab):
+o Xu, Q.,Manocha, A.,Patankar, N., and Jenkins, J.D., System-level Impacts of 24/7 Carbon-free Electricity Procurement, Zero-carbon Energy Systems Research and Optimization Laboratory, Princeton
+University, Princeton, NJ, 16 November 2021.
+o Xu, Q., & Jenkins, J. D. (2022). Electricity System and Market Impacts of Time-based Attribute Trading and 24/7 Carbon-free Electricity Procurement. Zenodo. https://doi.org/10.5281/zenodo.7082212
+
+International Energy Agency (IEA):
+o Regional insights and sectoral analyses
+o IEA (2022), Advancing Decarbonisation through Clean Electricity Procurement, IEA, Paris. https://www.iea.org/reports/advancing-decarbonisation-through-clean-electricity-procurement
+
+Our in-house modelling leverages PyPSA (Python for Power System Analysis), an open-source framework for simulating and optimizing energy systems. This platform enables high-resolution, hourly modelling of decarbonised power systems, adapted for our country-specific analyses. We are grateful to all contributors in the open modelling community, whose tools and insights strengthen the analytical foundation for achieving global CFE goals.
 
