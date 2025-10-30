@@ -116,19 +116,22 @@ This work was made possible through the funding from Google.org.
 
 Our methodological approach is focused on the assessment of system-level costs and benefits of 24/7 Carbon-Free Electricity (CFE) procurement in Japan, India, Singapore, Taiwan, and Malaysia.
 
-It builds on a robust body of literature and cutting-edge modelling tools. In particular we were influenced by:
+It builds on a robust body of literature and cutting-edge modelling tools. In particular we were influenced by,
 
 TU Berlin and affiliated researchers:
+
 Riepin, I., & Brown, T. (2022). System-level impacts of 24/7 carbon-free electricity procurement in Europe. Zenodo. https://doi.org/10.5281/zenodo.7180098
 
 Riepin, I., & Brown, T. (2023). The value of space-time load-shifting flexibility for 24/7 carbon-free electricity procurement. Zenodo. https://doi.org/10.5281/zenodo.8185850
 
 Princeton University (ZERO Lab):
+
 Xu, Q.,Manocha, A.,Patankar, N., and Jenkins, J.D., System-level Impacts of 24/7 Carbon-free Electricity Procurement, Zero-carbon Energy Systems Research and Optimization Laboratory, Princeton University, Princeton, NJ, 16 November 2021.
 
 Xu, Q., & Jenkins, J. D. (2022). Electricity System and Market Impacts of Time-based Attribute Trading and 24/7 Carbon-free Electricity Procurement. Zenodo. https://doi.org/10.5281/zenodo.7082212
 
 International Energy Agency (IEA):
+
 Regional insights and sectoral analyses
 
 IEA (2022), Advancing Decarbonisation through Clean Electricity Procurement, IEA, Paris. https://www.iea.org/reports/advancing-decarbonisation-through-clean-electricity-procurement
