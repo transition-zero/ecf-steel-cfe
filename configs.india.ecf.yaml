@@ -1,0 +1,186 @@
+# -------------------------------------------------------------------------
+#
+#   CONFIGS
+#
+#     xxx
+#
+#     Authors:
+#       - @amanmajid
+#
+# -------------------------------------------------------------------------
+
+paths:
+  brownfield_models: "networks/brownfield/"
+  output_model_runs: "outputs/model_runs/" # path to save model run outputs
+  path_to_model: '../tza-google-cfe/stock_models/India'
+global_vars:
+  year: 2030 # year of the model run
+  frequency: 1h # time resolution of the model run (should be 1h for CFE)
+  timesteps: 8760 # number of timesteps in the model run (e.g., 24 = 1 day)
+  ci_label: C&I # this is a unique identifier for all CFE attributes in the network
+  enable_fossil_charging: false # if true, the model will allow batteries to be charged by fossil fuels
+  set_global_constraints: false # if true, the model will set global constraints from tza-pypsa (keep False here)
+  maximum_excess_export_cfe: 0.20 # maximum fraction of excess electricity that can be sold from C&I asset to grid under CFE scenarios
+  maximum_excess_export_res100: 1.00 # maximum fraction of excess electricity that can be sold from C&I asset to grid under annual matching
+
+constraints:
+  bus_self_sufficiency: # constraint is set by user
+    enable: false
+    fraction: 0.6
+    buses:
+      - 'INDNO'
+      - 'INDEA'
+  bus_individual_self_sufficiency: # constraints are predefined in network
+    enable: false
+  policy_targets:
+    enable: true
+  min_annual_generation:
+    enable: false
+    generator: 'example01'
+    fraction: 0.2
+  min_utilisation_links:
+    enable: false
+    carriers:
+      - 'AC'
+  max_utilisation_links:
+    enable: false
+    carriers:
+      - 'AC'
+  min_utilisation_generator: # fraction is predefined in network
+    enable: false
+    carriers:
+      - 'coal'
+  max_utilisation_generator: # fraction is predefined in network
+    enable: false
+    carriers:
+      - 'coal'
+  max_utilisation: # fraction is set by user
+    enable: false
+    fraction: 0.8
+    carriers:
+      - 'coal'
+      - 'gas'
+      - 'oil'
+      - 'geothermal'
+  cofiring_ccs_gen:
+    enable: false
+    clean_generator_['INDWE']: ['INDWE C&I Grid-hydrogen-blend-ccgt-ext-2030-PPA-Clean']
+    fossil_generator_['INDWE']: ['INDWE C&I Grid-hydrogen-blend-ccgt-ext-2030-PPA-Fossil']
+
+model_runs:
+  - name: INDNE_TP1_Test
+    palette: palette_1
+    stock_model: India
+    select_nodes:
+      - INDNO
+      - INDEA
+      - INDWE
+      - INDSO
+      - INDNE
+    nodes_with_ci_load:
+      - INDNE
+    cfe_score:
+      - 0.7
+      # - 0.8
+      # - 0.9
+      # - 0.95
+      # - 0.99
+      # - 1.0
+    ci_load_fraction: 0.05 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+    allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
+    allow_generation_expansion: false # if true, the model will allow generation expansion, if false, will leave as it
+    allow_storage_expansion: false # if true, the model will allow storage expansion, if false, will leave as it
+    backstop: false
+  # - name: INDWE_TP3_Test
+  #   palette: palette_3
+  #   stock_model: India
+  #   select_nodes:
+  #     - INDNO
+  #     - INDEA
+  #     - INDWE
+  #     - INDSO
+  #     - INDNE
+  #   nodes_with_ci_load:
+  #     - INDWE
+  #   cfe_score:
+  #     - 0.7
+  #     # - 0.8
+  #     # - 0.9
+  #     # - 0.95
+  #     # - 0.99
+  #     - 1.0
+  #   ci_load_fraction: 0.05 # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+  #   allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
+  #   allow_generation_expansion: false # if true, the model will allow generation expansion, if false, will leave as it
+  #   allow_storage_expansion: false # if true, the model will allow storage expansion, if false, will leave as it
+  #   backstop: false
+
+technology_palette:
+  palette_1:
+    - wind-onshore
+    - photovoltaic-unspecified
+    - battery
+  palette_2:
+    - 'wind-onshore'
+    - 'photovoltaic-unspecified'
+    - 'battery'
+    - 'laes'
+  palette_3:
+    - wind-onshore
+    - photovoltaic-unspecified
+    - battery
+    - laes
+    - combined-cycle-h2
+
+solver:
+  name: highs
+  options: highs-default
+
+solver_options:
+  highs-default:
+    # refer to https://ergo-code.github.io/HiGHS/dev/options/definitions/
+    threads: 1
+    solver: "ipm"
+    run_crossover: "off"
+    small_matrix_value: 1e-6
+    large_matrix_value: 1e9
+    primal_feasibility_tolerance: 1e-5
+    dual_feasibility_tolerance: 1e-5
+    ipm_optimality_tolerance: 1e-4
+    parallel: "on"
+    random_seed: 123
+  highs-simplex:
+    solver: "simplex"
+    parallel: "on"
+    primal_feasibility_tolerance: 1e-5
+    dual_feasibility_tolerance: 1e-5
+    random_seed: 123
+  gurobi-default:
+    threads: 8
+    method: 2 # barrier
+    crossover: 0
+    BarConvTol: 1.e-6
+    Seed: 123
+    AggFill: 0
+    PreDual: 0
+    GURO_PAR_BARDENSETHRESH: 200
+  gurobi-numeric-focus:
+    NumericFocus: 3       # Favour numeric stability over speed
+    method: 2             # barrier
+    crossover: 0          # do not use crossover
+    BarHomogeneous: 1     # Use homogeneous barrier if standard does not converge
+    BarConvTol: 1.e-5
+    FeasibilityTol: 1.e-4
+    OptimalityTol: 1.e-4
+    ObjScale: -0.5
+    threads: 8
+    Seed: 123
+  gurobi-fallback:        # Use gurobi defaults
+    crossover: 0
+    method: 2             # barrier
+    BarHomogeneous: 1     # Use homogeneous barrier if standard does not converge
+    BarConvTol: 1.e-5
+    FeasibilityTol: 1.e-5
+    OptimalityTol: 1.e-5
+    Seed: 123
+    threads: 8
