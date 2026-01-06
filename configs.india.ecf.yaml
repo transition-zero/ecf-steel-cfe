@@ -68,7 +68,7 @@ constraints:
     fossil_generator_['INDWE']: ['INDWE C&I Grid-hydrogen-blend-ccgt-ext-2030-PPA-Fossil']
 
 model_runs:
-  - name: INDWE_TP1_ecf_path
+  - name: INDWE_TP1_dc_flat_load
     palette: palette_1
     stock_model: India
     select_nodes:
@@ -82,11 +82,11 @@ model_runs:
     cfe_score:
       - 0.7
       # - 0.8
-      # - 0.9
+      - 0.9
       # - 0.95
-      # - 0.99
-      # - 1.0
-    ci_load_fraction: '/home/irfanmohamed/ecf-steel-cfe/data/cfe-steel-load.csv' 
+      - 0.99
+      - 1.0
+    ci_load_fraction: '/home/irfanmohamed/ecf-steel-cfe/data/dc-flat-load.csv' 
     # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
     # if a string is supplied, this must be the path to a CSV file with custom load profiles for the C&I load
     allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
