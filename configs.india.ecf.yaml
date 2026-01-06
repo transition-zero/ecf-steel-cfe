@@ -86,7 +86,8 @@ model_runs:
       # - 0.95
       # - 0.99
       # - 1.0
-    ci_load_fraction: '/home/irfanmohamed/ecf-steel-cfe/data/cfe-steel-load.csv' # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
+    ci_load_fraction: '/home/irfanmohamed/ecf-steel-cfe/data/cfe-steel-load.csv' 
+    # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
     # if a string is supplied, this must be the path to a CSV file with custom load profiles for the C&I load
     allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
     allow_generation_expansion: false # if true, the model will allow generation expansion, if false, will leave as it
