@@ -5,7 +5,7 @@ import pandas as pd
 def PrepareNetworkForCFE(
         network: pypsa.Network, 
         buses_with_ci_load: list,
-        ci_load_fraction: float,
+        ci_load_fraction: float | str, 
         technology_palette: list,
         p_nom_extendable: bool,
     ) -> pypsa.Network:
@@ -22,8 +22,9 @@ def PrepareNetworkForCFE(
         The PyPSA network to be prepared (e.g., Brownfield Network).
     buses_with_ci_load : list
         List of buses on which to model a C&I system/asset.
-    ci_load_fraction : float
-        Fraction of the original load to be assigned to the C&I load.
+    ci_load_fraction : float or str
+        If float, a fraction of the original load to be assigned to the C&I load.
+        If string 'custom', the user must define custom load profiles for each C&I load separately.
     technology_palette : list
         List of technologies (generators and storages) to add to the C&I system.
     p_nom_extendable : bool
@@ -80,6 +81,8 @@ def PrepareNetworkForCFE(
             "Load",
             ci_load_name,
             bus = ci_bus_name,
+            # this is where we assign a custom load instead of a fraction if the user wants
+            # if ci_load_fraction == 'custom' else
             p_set = network.loads_t.p_set[bus] * ci_load_fraction,
         )
 
