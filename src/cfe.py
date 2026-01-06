@@ -52,28 +52,41 @@ def PrepareNetworkForCFE(
     # Loop through each bus on which we want to model a C&I system/asset. 
     # The logic here is to abstract the C&I system as a separate entity.
     # This is done by adding a new bus, load, and storage unit to the network.
+    # If there is C&I hydrogen demand, this is added as a new H2 bus, connected to the C&I bus via a link.
+
+    # TODO: correct the location jitter to be based on bus location, not first bus in network
 
     for bus in buses_with_ci_load:
 
         # define names
         ci_bus_name = f'{bus} C&I Grid'
+        ci_bus_name_h2 = f'{bus} C&I H2 Grid'
         ci_load_name = f'{bus} C&I Load'
+        ci_load_name_h2 = f'{bus} C&I H2 Load'
         ci_storage_bus_name = f'{bus} C&I Storage'
 
         # add a bus for the C&I system
         network.add(
             'Bus',
             ci_bus_name,
-            x = network.buses.x.iloc[0] + 1, # add jitter
-            y = network.buses.y.iloc[0] + 1, # add jitter
+            x = network.buses.x.loc[bus] + 1, # add jitter
+            y = network.buses.y.loc[bus] + 1, # add jitter
         )
 
         # add another bus to connect C&I bus with energy storage
         network.add(
             'Bus',
             ci_storage_bus_name,
-            x = network.buses.x.iloc[0] - 1, # add jitter
-            y = network.buses.y.iloc[0] - 1, # add jitter
+            x = network.buses.x.loc[bus] - 1, # add jitter
+            y = network.buses.y.loc[bus] - 1, # add jitter
+        )
+
+        # add another H2 bus 
+        network.add(
+            'Bus',
+            ci_bus_name_h2,
+            x = network.buses.x.loc[bus] + 2, # add jitter
+            y = network.buses.y.loc[bus] + 2, # add jitter
         )
 
         # add C&I load
@@ -100,12 +113,22 @@ def PrepareNetworkForCFE(
         else:
             # return error
             raise ValueError("Invalid data supplied for ci_load_fraction. Must be float or path to csv.")
+        
+        # add C&I H2 load
+        network.add(
+            "Load",
+            ci_load_name_h2,
+            carrier = 'hydrogen',
+            bus = ci_bus_name_h2,
+            p_set = network.loads_t.p_set[bus] * 0.0, # set to zero for now
+        )
 
         # STEP 2:
         # Add virtual links between buses to represent flows of electricity.
         # Specifically, we add the following:
         #   - LocalGrid <-> C&I system
         #   - C&I system <-> C&I storage
+        #   - C&I system <-> C&I H2 system
 
         # LocalGrid <-> C&I system
         network.add(
@@ -150,6 +173,20 @@ def PrepareNetworkForCFE(
             f"{bus} C&I Storage Discharge",
             bus0=ci_storage_bus_name, 
             bus1=ci_bus_name, 
+            p_nom=0,
+            p_nom_extendable=p_nom_extendable,
+            # add small capital and marginal costs to prevent model infeasibilities
+            marginal_cost=0.01, 
+            capital_cost=0.01,
+        )
+
+        network.add(
+            # TODO: add hydrogen link efficiencies
+            # TODO: research electrolysis costs
+            "Link",
+            f"{bus} C&I H2 Electrolyser",
+            bus0=ci_bus_name,             bus1=ci_bus_name_h2,
+            carrier = 'electrolysis',
             p_nom=0,
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
