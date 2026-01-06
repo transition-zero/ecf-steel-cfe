@@ -77,17 +77,34 @@ def PrepareNetworkForCFE(
         )
 
         # add C&I load
-        network.add(
-            "Load",
-            ci_load_name,
-            bus = ci_bus_name,
-            # this is where we assign a custom load instead of a fraction if the user wants
-            # if ci_load_fraction == 'custom' else
-            p_set = network.loads_t.p_set[bus] * ci_load_fraction,
-        )
-
-        # now subtract the C&I load from the overall load to prevent double-counting
-        network.loads_t.p_set[bus] = network.loads_t.p_set[bus] - network.loads_t.p_set[ci_load_name]
+        if isinstance(ci_load_fraction, float):
+            network.add(
+                "Load",
+                ci_load_name,
+                bus = ci_bus_name,
+                p_set = network.loads_t.p_set[bus] * ci_load_fraction,
+            )
+            # now subtract the C&I load from the overall load to prevent double-counting
+            network.loads_t.p_set[bus] = network.loads_t.p_set[bus] - network.loads_t.p_set[ci_load_name]
+        elif isinstance(ci_load_fraction, str):
+            # retrieve custom load profile from string supplied, which should be the path
+            custom_load_profile = pd.read_csv(ci_load_fraction, index_col=0, parse_dates=True)
+            # ensure the index matches the network snapshots
+            custom_load_profile = custom_load_profile.reindex(network.snapshots)
+            # If the profile is a DataFrame with one column, convert to Series
+            if isinstance(custom_load_profile, pd.DataFrame) and custom_load_profile.shape[1] == 1:
+                custom_load_profile = custom_load_profile.iloc[:, 0]
+            network.add(
+                "Load",
+                ci_load_name,
+                bus = ci_bus_name,
+                p_set = custom_load_profile,
+            )
+            # now subtract the C&I load from the overall load to prevent double-counting
+            network.loads_t.p_set[bus] = network.loads_t.p_set[bus] - network.loads_t.p_set[ci_load_name]
+        else:
+            # return error
+            raise ValueError("Invalid value for ci_load_fraction. Must be a float or 'custom'.")
 
         # STEP 2:
         # Add virtual links between buses to represent flows of electricity.
