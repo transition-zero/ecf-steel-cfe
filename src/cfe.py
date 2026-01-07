@@ -5,7 +5,7 @@ import pandas as pd
 def PrepareNetworkForCFE(
         network: pypsa.Network, 
         buses_with_ci_load: list,
-        ci_load_fraction: float,
+        ci_load_fraction: float | str, 
         technology_palette: list,
         p_nom_extendable: bool,
     ) -> pypsa.Network:
@@ -22,8 +22,9 @@ def PrepareNetworkForCFE(
         The PyPSA network to be prepared (e.g., Brownfield Network).
     buses_with_ci_load : list
         List of buses on which to model a C&I system/asset.
-    ci_load_fraction : float
-        Fraction of the original load to be assigned to the C&I load.
+    ci_load_fraction : float or str
+        If float, a fraction of the original load to be assigned to the C&I load.
+        If string 'custom', the user must define custom load profiles for each C&I load separately.
     technology_palette : list
         List of technologies (generators and storages) to add to the C&I system.
     p_nom_extendable : bool
@@ -76,15 +77,29 @@ def PrepareNetworkForCFE(
         )
 
         # add C&I load
-        network.add(
-            "Load",
-            ci_load_name,
-            bus = ci_bus_name,
-            p_set = network.loads_t.p_set[bus] * ci_load_fraction,
-        )
-
-        # now subtract the C&I load from the overall load to prevent double-counting
-        network.loads_t.p_set[bus] = network.loads_t.p_set[bus] - network.loads_t.p_set[ci_load_name]
+        if isinstance(ci_load_fraction, float):
+            network.add(
+                "Load",
+                ci_load_name,
+                bus = ci_bus_name,
+                p_set = network.loads_t.p_set[bus] * ci_load_fraction,
+            )
+            # now subtract the C&I load from the overall load to prevent double-counting
+            network.loads_t.p_set[bus] = network.loads_t.p_set[bus] - network.loads_t.p_set[ci_load_name]
+        elif isinstance(ci_load_fraction, str):
+            # retrieve custom load profile from string supplied, which should be the path
+            custom_load_profile = pd.read_csv(ci_load_fraction, index_col=0, parse_dates=True).iloc[:, 0]
+            network.add(
+                "Load",
+                ci_load_name,
+                bus = ci_bus_name,
+                p_set = custom_load_profile,
+            )
+            # now subtract the C&I load from the overall load to prevent double-counting
+            network.loads_t.p_set[bus] = network.loads_t.p_set[bus] - network.loads_t.p_set[ci_load_name]
+        else:
+            # return error
+            raise ValueError("Invalid data supplied for ci_load_fraction. Must be float or path to csv.")
 
         # STEP 2:
         # Add virtual links between buses to represent flows of electricity.
