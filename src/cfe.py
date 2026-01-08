@@ -64,6 +64,7 @@ def PrepareNetworkForCFE(
         ci_load_name = f'{bus} C&I Load'
         ci_load_name_h2 = f'{bus} C&I H2 Load'
         ci_storage_bus_name = f'{bus} C&I Storage'
+        ci_storage_bus_name_h2 = f'{bus} C&I H2 Storage'
 
         # add a bus for the C&I system
         network.add(
@@ -115,12 +116,23 @@ def PrepareNetworkForCFE(
             raise ValueError("Invalid data supplied for ci_load_fraction. Must be float or path to csv.")
         
         # add C&I H2 load
+        # TODO: allow user-defined load, similar to above
         network.add(
             "Load",
             ci_load_name_h2,
             carrier = 'hydrogen',
             bus = ci_bus_name_h2,
-            p_set = network.loads_t.p_set[bus] * 0.0, # set to zero for now
+            p_set = 100
+            # p_set = network.loads_t.p_set[bus] * 0.05, # set to zero for now
+        )
+        # note no need to subtract load - this is additional load due to electrification
+
+        # add C&I H2 storage bus
+        network.add(
+            'Bus',
+            ci_storage_bus_name_h2,
+            x = network.buses.x.loc[bus] - 2, # add jitter
+            y = network.buses.y.loc[bus] - 2, # add jitter
         )
 
         # STEP 2:
@@ -128,7 +140,8 @@ def PrepareNetworkForCFE(
         # Specifically, we add the following:
         #   - LocalGrid <-> C&I system
         #   - C&I system <-> C&I storage
-        #   - C&I system <-> C&I H2 system
+        #   - C&I system -> C&I H2 system
+        #   - C&I H2 system <-> C&I H2 storage
 
         # LocalGrid <-> C&I system
         network.add(
@@ -185,10 +198,13 @@ def PrepareNetworkForCFE(
             # TODO: research electrolysis costs
             "Link",
             f"{bus} C&I H2 Electrolyser",
-            bus0=ci_bus_name,             bus1=ci_bus_name_h2,
-            carrier = 'electrolysis',
+            bus0=ci_bus_name,
+            bus1=ci_bus_name_h2,
+            carrier = 'Electrolysis',
+            efficiency = 0.95,
             p_nom=0,
-            p_nom_extendable=p_nom_extendable,
+            p_nom_extendable=True,
+            p_nom_max = 100000,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
             capital_cost=0.01,
@@ -384,7 +400,18 @@ def apply_cfe_constraint(
         # fetch necessary variables to implement CFE
 
         CI_Demand = (
-            n.loads_t.p_set.filter(regex=bus).filter(regex=ci_identifier).values.flatten()
+            n.loads_t.p_set
+            .filter(regex=bus)
+            .filter(regex=ci_identifier)
+            .filter(regex=r'^(?!.*H2).*', axis=1) # exclude H2 loads
+            .values.flatten()
+        )
+
+        CI_H2_Demand = (
+            n.model.variables['Link-p'].sel(
+                Link=[i for i in n.links.index if ci_identifier in i and 'Electrolyser' in i and bus in i]
+            )
+            .sum(dims='Link')
         )
 
         CI_StorageCharge = (
@@ -436,14 +463,14 @@ def apply_cfe_constraint(
         # ---------------------------------------------------------------
 
         n.model.add_constraints(
-            CI_Demand == CI_PPA_Clean + CI_PPA_Fossil - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge,
+            CI_Demand == CI_PPA_Clean + CI_PPA_Fossil - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge - CI_H2_Demand,
             name=f"cfe-constraint-hourly-matching-{bus}",
         )
 
         # Constraint 2: CFE target - note the CI_PPA_Fossil is offset by the share of fossil production which must be exported (set by CFE score)
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            ( CI_PPA_Clean - (CI_GridExport - (CI_PPA_Fossil * CFE_Score) ) + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand ).sum() * CFE_Score,
+            ( CI_PPA_Clean - (CI_GridExport - (CI_PPA_Fossil * CFE_Score) ) + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand + CI_H2_Demand).sum() * CFE_Score,
             name=f"cfe-constraint-target-{bus}",
  
         )

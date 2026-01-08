@@ -8,6 +8,7 @@ bituminous,0.34,black,Bituminous Coal
 coal,0.316,black,Coal
 coal-unspecified,0.34,black,Coal Unspecified
 diesel,0.26,darkgray,Diesel
+electrolysis,0.0,lightblue,Electrolysis
 gas,0.2,grey,Gas
 gas-unspecified,0.2,grey,Gas Unspecified
 geothermal,0.0,brown,Geothermal

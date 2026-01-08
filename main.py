@@ -50,7 +50,7 @@ def solve_brownfield_network(run, configs, with_cfe: bool, env=None) -> pypsa.Ne
     final_brownfield.optimize.create_model()
     brownfield.ApplyBrownfieldConstraints(final_brownfield, run, configs)
 
-    final_brownfield.optimize(
+    final_brownfield.optimize.solve_model(
         solver_name=configs["solver"]["name"],
         solver_options=configs["solver_options"][configs["solver"]["options"]],
         io_api="direct",
