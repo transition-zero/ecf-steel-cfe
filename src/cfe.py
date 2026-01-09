@@ -194,20 +194,20 @@ def PrepareNetworkForCFE(
         )
 
         network.add(
-            # TODO: add hydrogen link efficiencies
-            # TODO: research electrolysis costs
+            # Hydrogen carrier kept in MWh units, not tonnes
             "Link",
             f"{bus} C&I H2 Electrolyser",
             bus0=ci_bus_name,
             bus1=ci_bus_name_h2,
             carrier = 'Electrolysis',
-            efficiency = 0.95,
+            # TODO: set realistic electrolyser parameters
+            efficiency = 0.7,  # typical electrolyser efficiency (70%)
             p_nom=0,
             p_nom_extendable=True,
-            p_nom_max = 100000,
-            # add small capital and marginal costs to prevent model infeasibilities
-            marginal_cost=0.01, 
-            capital_cost=0.01,
+            p_nom_max = 10000, # to update, set as 10MW link for now
+            # TODO: add realistic capital and marginal costs for electrolyser
+            marginal_cost=50,  # USD/MWh, typical electricity cost for H2 production
+            capital_cost=900000,  # USD/MW, typical CAPEX for PEM electrolyser
         )
 
         network.add(
@@ -408,13 +408,14 @@ def PrepareNetworkForCFE(
         
         # Add hydrogen storage unit (not under technology palette, only for use for steelmaking)
         network.add(
+            # TODO: set realistic hydrogen storage parameters
             "Store",
             ci_storage_bus_name_h2 + '-H2 Storage',
             bus = ci_storage_bus_name_h2,
             carrier = 'hydrogen',
             e_nom_extendable = True,
             e_cyclic = True,
-            capital_cost = 10, # tbc how this maps and to what units
+            capital_cost = 500,
             standing_loss = 0.001, # per unit per hour
         )
     return network
@@ -431,29 +432,16 @@ def apply_cfe_constraint(
     '''Set CFE constraint
     '''
     for bus in ci_buses:
+        # ---
         # fetch necessary variables to implement CFE
 
-        # Check if CI_Demand p_set (non H2) columns exist, if not, set to zero
-        # p_set column can disappear if load is zero for all time steps 
-        # during netcdf import and export, this column is dropped if so
-        ci_demand_cols = (
+        CI_Demand = (
             n.loads_t.p_set
             .filter(regex=bus)
             .filter(regex=ci_identifier)
-            .filter(regex=r'^(?!.*H2).*', axis=1)
-            # .columns
+            .filter(regex=r'^(?!.*H2).*', axis=1) # exclude H2 loads
+            .values.flatten()
         )
-        if len(ci_demand_cols.columns) == 0:
-            CI_Demand = (
-                n.loads_t.p_set
-                .filter(regex=bus)
-                .iloc[:,0]
-            ) * 0.0
-        else:
-            CI_Demand = (
-                ci_demand_cols
-                .values.flatten()
-            )
 
         CI_H2_Demand = (
             n.model.variables['Link-p'].sel(
@@ -533,7 +521,7 @@ def apply_cfe_constraint(
         # Constraint 4: Battery and electrolyser can only be charged/used by clean PPA (not grid)
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            CI_PPA_Clean >= CI_StorageCharge + CI_H2_Demand,
+            CI_PPA_Clean >= CI_StorageCharge, # + CI_H2_Demand,
             name=f"cfe-constraint-storage-{bus}",
         )
 
