@@ -54,7 +54,7 @@ def PrepareNetworkForCFE(
     # This is done by adding a new bus, load, and storage unit to the network.
     # If there is C&I hydrogen demand, this is added as a new H2 bus, connected to the C&I bus via a link.
 
-    # TODO: correct the location jitter to be based on bus location, not first bus in network
+    # TODO: correct the location jitter
 
     for bus in buses_with_ci_load:
 
@@ -211,27 +211,34 @@ def PrepareNetworkForCFE(
         )
 
         network.add(
+            # this represents the compressor from electrolyser to H2 storage
             "Link",
             f"{bus} C&I H2 Storage Charge",
             bus0=ci_bus_name_h2, 
-            bus1=ci_storage_bus_name_h2, 
+            bus1=ci_storage_bus_name_h2,
+            bus2=ci_bus_name,
+            efficiency1 = 0.99,
+            efficiency2 = -0.07, # represents energy required for compression 
             p_nom=0,
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
-            marginal_cost=0.01, 
-            capital_cost=0.01,
+            capital_cost=40000, # placeholder costs
+            marginal_cost=0.5,  # placeholder costs
         )
 
         network.add(
+            # decompression and regulation from pressurised storage
+            # back to low pressure for use in DRI
             "Link",
             f"{bus} C&I H2 Storage Discharge",
             bus0=ci_storage_bus_name_h2, 
             bus1=ci_bus_name_h2, 
+            efficiency = 0.99,
             p_nom=0,
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=0.01,
+            capital_cost=1000, # placeholder costs
         )
 
         # STEP 3:
@@ -406,7 +413,7 @@ def PrepareNetworkForCFE(
             else:
                 raise ValueError(f"Invalid technology: {technology}")
         
-        # Add hydrogen storage unit (not under technology palette, only for use for steelmaking)
+        # Add hydrogen storage unit as H2 steel tank
         network.add(
             # TODO: set realistic hydrogen storage parameters
             "Store",
@@ -416,7 +423,7 @@ def PrepareNetworkForCFE(
             e_nom_extendable = True,
             e_cyclic = True,
             capital_cost = 500,
-            standing_loss = 0.001, # per unit per hour
+            standing_loss = 0.0001, # per unit per hour
         )
     return network
 
@@ -518,10 +525,10 @@ def apply_cfe_constraint(
             name=f"cfe-constraint-excess-{bus}",
         )
 
-        # Constraint 4: Battery and electrolyser can only be charged/used by clean PPA (not grid)
+        # Constraint 4: Battery can only be charged/used by clean PPA (not grid)
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            CI_PPA_Clean >= CI_StorageCharge, # + CI_H2_Demand,
+            CI_PPA_Clean >= CI_StorageCharge,
             name=f"cfe-constraint-storage-{bus}",
         )
 
