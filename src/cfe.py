@@ -52,28 +52,42 @@ def PrepareNetworkForCFE(
     # Loop through each bus on which we want to model a C&I system/asset. 
     # The logic here is to abstract the C&I system as a separate entity.
     # This is done by adding a new bus, load, and storage unit to the network.
+    # If there is C&I hydrogen demand, this is added as a new H2 bus, connected to the C&I bus via a link.
+
+    # TODO: correct the location jitter
 
     for bus in buses_with_ci_load:
 
         # define names
         ci_bus_name = f'{bus} C&I Grid'
+        ci_bus_name_h2 = f'{bus} C&I H2 Grid'
         ci_load_name = f'{bus} C&I Load'
+        ci_load_name_h2 = f'{bus} C&I H2 Load'
         ci_storage_bus_name = f'{bus} C&I Storage'
+        ci_storage_bus_name_h2 = f'{bus} C&I H2 Storage'
 
         # add a bus for the C&I system
         network.add(
             'Bus',
             ci_bus_name,
-            x = network.buses.x.iloc[0] + 1, # add jitter
-            y = network.buses.y.iloc[0] + 1, # add jitter
+            x = network.buses.x.loc[bus] + 1, # add jitter
+            y = network.buses.y.loc[bus] + 1, # add jitter
         )
 
         # add another bus to connect C&I bus with energy storage
         network.add(
             'Bus',
             ci_storage_bus_name,
-            x = network.buses.x.iloc[0] - 1, # add jitter
-            y = network.buses.y.iloc[0] - 1, # add jitter
+            x = network.buses.x.loc[bus] - 1, # add jitter
+            y = network.buses.y.loc[bus] - 1, # add jitter
+        )
+
+        # add another H2 bus 
+        network.add(
+            'Bus',
+            ci_bus_name_h2,
+            x = network.buses.x.loc[bus] + 2, # add jitter
+            y = network.buses.y.loc[bus] + 2, # add jitter
         )
 
         # add C&I load
@@ -100,12 +114,34 @@ def PrepareNetworkForCFE(
         else:
             # return error
             raise ValueError("Invalid data supplied for ci_load_fraction. Must be float or path to csv.")
+        
+        # add C&I H2 load
+        # TODO: allow user-defined load, similar to above
+        network.add(
+            "Load",
+            ci_load_name_h2,
+            carrier = 'hydrogen',
+            bus = ci_bus_name_h2,
+            # p_set = 100
+            p_set = network.loads_t.p_set[bus] * 0.005
+        )
+        # note no need to subtract load - this is additional load due to electrification
+
+        # add C&I H2 storage bus
+        network.add(
+            'Bus',
+            ci_storage_bus_name_h2,
+            x = network.buses.x.loc[bus] - 2, # add jitter
+            y = network.buses.y.loc[bus] - 2, # add jitter
+        )
 
         # STEP 2:
         # Add virtual links between buses to represent flows of electricity.
         # Specifically, we add the following:
         #   - LocalGrid <-> C&I system
         #   - C&I system <-> C&I storage
+        #   - C&I system -> C&I H2 system
+        #   - C&I H2 system <-> C&I H2 storage
 
         # LocalGrid <-> C&I system
         network.add(
@@ -155,6 +191,54 @@ def PrepareNetworkForCFE(
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
             capital_cost=0.01,
+        )
+
+        network.add(
+            # Hydrogen carrier kept in MWh units, not tonnes
+            "Link",
+            f"{bus} C&I H2 Electrolyser",
+            bus0=ci_bus_name,
+            bus1=ci_bus_name_h2,
+            carrier = 'Electrolysis',
+            # TODO: set realistic electrolyser parameters
+            efficiency = 0.7,  # typical electrolyser efficiency (70%)
+            p_nom=0,
+            p_nom_extendable=True,
+            p_nom_max = 10000, # to update, set as 10MW link for now
+            # TODO: add realistic capital and marginal costs for electrolyser
+            marginal_cost=50,  # USD/MWh, typical electricity cost for H2 production
+            capital_cost=900000,  # USD/MW, typical CAPEX for PEM electrolyser
+        )
+
+        network.add(
+            # this represents the compressor from electrolyser to H2 storage
+            "Link",
+            f"{bus} C&I H2 Storage Charge",
+            bus0=ci_bus_name_h2, 
+            bus1=ci_storage_bus_name_h2,
+            bus2=ci_bus_name,
+            efficiency1 = 0.99,
+            efficiency2 = -0.07, # represents energy required for compression 
+            p_nom=0,
+            p_nom_extendable=p_nom_extendable,
+            # add small capital and marginal costs to prevent model infeasibilities
+            capital_cost=40000, # placeholder costs
+            marginal_cost=0.5,  # placeholder costs
+        )
+
+        network.add(
+            # decompression and regulation from pressurised storage
+            # back to low pressure for use in DRI
+            "Link",
+            f"{bus} C&I H2 Storage Discharge",
+            bus0=ci_storage_bus_name_h2, 
+            bus1=ci_bus_name_h2, 
+            efficiency = 0.99,
+            p_nom=0,
+            p_nom_extendable=p_nom_extendable,
+            # add small capital and marginal costs to prevent model infeasibilities
+            marginal_cost=0.01, 
+            capital_cost=1000, # placeholder costs
         )
 
         # STEP 3:
@@ -328,7 +412,19 @@ def PrepareNetworkForCFE(
 
             else:
                 raise ValueError(f"Invalid technology: {technology}")
-
+        
+        # Add hydrogen storage unit as H2 steel tank
+        network.add(
+            # TODO: set realistic hydrogen storage parameters
+            "Store",
+            ci_storage_bus_name_h2 + '-H2 Storage',
+            bus = ci_storage_bus_name_h2,
+            carrier = 'hydrogen',
+            e_nom_extendable = True,
+            e_cyclic = True,
+            capital_cost = 500,
+            standing_loss = 0.0001, # per unit per hour
+        )
     return network
 
 
@@ -347,19 +443,30 @@ def apply_cfe_constraint(
         # fetch necessary variables to implement CFE
 
         CI_Demand = (
-            n.loads_t.p_set.filter(regex=bus).filter(regex=ci_identifier).values.flatten()
+            n.loads_t.p_set
+            .filter(regex=bus)
+            .filter(regex=ci_identifier)
+            .filter(regex=r'^(?!.*H2).*', axis=1) # exclude H2 loads
+            .values.flatten()
+        )
+
+        CI_H2_Demand = (
+            n.model.variables['Link-p'].sel(
+                Link=[i for i in n.links.index if ci_identifier in i and 'Electrolyser' in i and bus in i]
+            )
+            .sum(dims='Link')
         )
 
         CI_StorageCharge = (
             n.model.variables['Link-p'].sel(
-                Link=[i for i in n.links.index if ci_identifier in i and 'Charge' in i and bus in i]
+                Link=[i for i in n.links.index if ci_identifier in i and 'Charge' in i and bus in i and 'H2' not in i]
             )
             .sum(dims='Link')
         )
 
         CI_StorageDischarge = (
             n.model.variables['Link-p'].sel(
-                Link=[i for i in n.links.index if ci_identifier in i and 'Discharge' in i and bus in i]
+                Link=[i for i in n.links.index if ci_identifier in i and 'Discharge' in i and bus in i and 'H2' not in i]
             )
             .sum(dims='Link')
         )
@@ -399,14 +506,14 @@ def apply_cfe_constraint(
         # ---------------------------------------------------------------
 
         n.model.add_constraints(
-            CI_Demand == CI_PPA_Clean + CI_PPA_Fossil - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge,
+            CI_Demand == CI_PPA_Clean + CI_PPA_Fossil - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge - CI_H2_Demand,
             name=f"cfe-constraint-hourly-matching-{bus}",
         )
 
         # Constraint 2: CFE target - note the CI_PPA_Fossil is offset by the share of fossil production which must be exported (set by CFE score)
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            ( CI_PPA_Clean - (CI_GridExport - (CI_PPA_Fossil * CFE_Score) ) + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand ).sum() * CFE_Score,
+            ( CI_PPA_Clean - (CI_GridExport - (CI_PPA_Fossil * CFE_Score) ) + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand + CI_H2_Demand).sum() * CFE_Score,
             name=f"cfe-constraint-target-{bus}",
  
         )
@@ -418,15 +525,15 @@ def apply_cfe_constraint(
             name=f"cfe-constraint-excess-{bus}",
         )
 
-        # Constraint 4: Battery can only be charged by clean PPA (not grid)
+        # Constraint 4: Battery can only be charged/used by clean PPA (not grid)
         # ---------------------------------------------------------------
         n.model.add_constraints(
             CI_PPA_Clean >= CI_StorageCharge,
             name=f"cfe-constraint-storage-{bus}",
         )
 
-        #Constraint 5: Force fossil fuel production (from blended or CCS) to be exported
-
+        # Constraint 5: Force fossil fuel production (from blended or CCS) to be exported
+        # ---------------------------------------------------------------
         n.model.add_constraints(
             CI_GridExport >= CI_PPA_Fossil * CFE_Score,
             name=f"cfe-constraint-fossil-excess-{bus}",
