@@ -36,18 +36,20 @@ def solve_brownfield_network(run, configs, with_cfe: bool, env=None) -> pypsa.Ne
     """
 
     tza_brownfield_network = brownfield.SetupBrownfieldNetwork(run, configs)
-    if with_cfe:
-        final_brownfield = cfe.PrepareNetworkForCFE(
-            tza_brownfield_network,
-            buses_with_ci_load=run["nodes_with_ci_load"],
-            ci_load_fraction=run["ci_load_fraction"],
-            technology_palette=configs["technology_palette"][run["palette"]],
-            p_nom_extendable=False,
-        )
-    else:
-        final_brownfield = tza_brownfield_network
-        
-    final_brownfield.optimize.create_model()
+    # if with_cfe:
+    #     final_brownfield = cfe.PrepareNetworkForCFE(
+    #         tza_brownfield_network,
+    #         buses_with_ci_load=run["nodes_with_ci_load"],
+    #         ci_load_fraction=run["ci_load_fraction"],
+    #         technology_palette=configs["technology_palette"][run["palette"]],
+    #         p_nom_extendable=False,
+    #     )
+    # else:
+    #     final_brownfield = tza_brownfield_network
+
+    # final_brownfield.optimize.create_model()
+    final_brownfield = tza_brownfield_network
+    tza_brownfield_network.optimize.create_model()
     brownfield.ApplyBrownfieldConstraints(final_brownfield, run, configs)
 
     final_brownfield.optimize.solve_model(

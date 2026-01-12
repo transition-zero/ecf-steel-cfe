@@ -6,7 +6,8 @@ from src import helpers
 def PrepareNetworkForCFE(
         network: pypsa.Network, 
         buses_with_ci_load: list,
-        ci_load_fraction: float | str, 
+        ci_load_fraction: float | str,
+        h2_load_fraction: float | str, 
         technology_palette: list,
         p_nom_extendable: bool,
     ) -> pypsa.Network:
@@ -26,6 +27,9 @@ def PrepareNetworkForCFE(
     ci_load_fraction : float or str
         If float, a fraction of the original load to be assigned to the C&I load.
         If string 'custom', the user must define custom load profiles for each C&I load separately.
+    h2_load_fraction : float or str
+        If float, a fraction of the original C&I load to be assigned to the C&I hydrogen load.
+        If string 'custom', the user must define custom load profiles for each C&I hydrogen load separately.
     technology_palette : list
         List of technologies (generators and storages) to add to the C&I system.
     p_nom_extendable : bool
@@ -124,7 +128,7 @@ def PrepareNetworkForCFE(
             carrier = 'hydrogen',
             bus = ci_bus_name_h2,
             # p_set = 100
-            p_set = network.loads_t.p_set[bus] * 0.01
+            p_set = network.loads_t.p_set[bus] * h2_load_fraction
         )
         # note no need to subtract load - this is additional load due to electrification
 

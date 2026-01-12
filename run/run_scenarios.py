@@ -152,6 +152,7 @@ def RunRES100(
         N_RES_100,
         buses_with_ci_load=run["nodes_with_ci_load"],
         ci_load_fraction=run["ci_load_fraction"],
+        h2_load_fraction=run["h2_load_fraction"],
         technology_palette=configs["technology_palette"][run["palette"]],
         p_nom_extendable=False,
     )
@@ -264,6 +265,7 @@ def RunCFE(
         N_BROWNFIELD,
         buses_with_ci_load=run["nodes_with_ci_load"],
         ci_load_fraction=run["ci_load_fraction"],
+        h2_load_fraction=run["h2_load_fraction"],
         technology_palette=configs["technology_palette"][run["palette"]],
         p_nom_extendable=False,
     )
