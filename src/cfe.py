@@ -1,6 +1,7 @@
 import pypsa
 import numpy as np
 import pandas as pd
+from src import helpers
 
 def PrepareNetworkForCFE(
         network: pypsa.Network, 
@@ -123,7 +124,7 @@ def PrepareNetworkForCFE(
             carrier = 'hydrogen',
             bus = ci_bus_name_h2,
             # p_set = 100
-            p_set = network.loads_t.p_set[bus] * 0.00
+            p_set = network.loads_t.p_set[bus] * 0.01
         )
         # note no need to subtract load - this is additional load due to electrification
 
@@ -153,7 +154,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=True, # keep this as True to prevent infeasibilities
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=0.01,
+            capital_cost=10, # don't make too low to prevent overbuilding
         )
 
         network.add(
@@ -165,7 +166,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=0.01,
+            capital_cost=10, # don't make too low to prevent overbuilding
         )
 
         # C&I system <-> C&I storage
@@ -178,7 +179,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=1000, # don't make too low
+            capital_cost=10, # don't make too low to prevent overbuilding
         )
 
         network.add(
@@ -190,7 +191,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=1000, # don't make too low
+            capital_cost=10, # don't make too low to prevent overbuilding
         )
 
         network.add(
@@ -207,7 +208,7 @@ def PrepareNetworkForCFE(
             p_nom_max = 10000, # to update, set as 10MW link for now
             # TODO: add realistic capital and marginal costs for electrolyser
             marginal_cost=50,  # USD/MWh, typical electricity cost for H2 production
-            capital_cost=900000,  # USD/MW, typical CAPEX for PEM electrolyser
+            capital_cost= helpers.calculate_annuity(0.1,30) * 0.6e6,  # USD/MW, typical CAPEX for PEM electrolyser - to annualise
         )
 
         network.add(
@@ -216,14 +217,14 @@ def PrepareNetworkForCFE(
             f"{bus} C&I H2 Storage Charge",
             bus0=ci_bus_name_h2, 
             bus1=ci_storage_bus_name_h2,
-            bus2=ci_bus_name,
+            # bus2=ci_bus_name,
             efficiency1 = 0.99,
-            efficiency2 = -0.07, # represents energy required for compression 
+            # efficiency2 = -0.07, # represents energy required for compression 
             p_nom=0,
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
-            capital_cost=40000, # placeholder costs
-            marginal_cost=0.5,  # placeholder costs
+            capital_cost=helpers.calculate_annuity(0.1,30) * 0.04e6, # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
+            marginal_cost=0.01,  # placeholder costs
         )
 
         network.add(
@@ -238,7 +239,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=1000, # placeholder costs
+            capital_cost=10, # placeholder costs
         )
 
         # STEP 3:
@@ -416,6 +417,7 @@ def PrepareNetworkForCFE(
         # Add hydrogen storage unit as H2 steel tank
         network.add(
             # TODO: set realistic hydrogen storage parameters
+            # TODO: annualise costs
             "Store",
             ci_storage_bus_name_h2 + '-H2 Storage',
             bus = ci_storage_bus_name_h2,
@@ -423,7 +425,7 @@ def PrepareNetworkForCFE(
             e_nom = 0,
             # e_nom_extendable = True,
             e_cyclic = True,
-            capital_cost = 500,
+            capital_cost = helpers.calculate_annuity(0.1,30) * 0.019e6, # DEA 0.019 M€/MWh, USD to EUR was about 1 in 2022.
             standing_loss = 0.0001, # per unit per hour
         )
     return network

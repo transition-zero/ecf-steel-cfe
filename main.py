@@ -46,7 +46,7 @@ def solve_brownfield_network(run, configs, with_cfe: bool, env=None) -> pypsa.Ne
         )
     else:
         final_brownfield = tza_brownfield_network
-    
+        
     final_brownfield.optimize.create_model()
     brownfield.ApplyBrownfieldConstraints(final_brownfield, run, configs)
 
@@ -98,7 +98,7 @@ def run_scenarios(configs):
         path_to_run_dir = os.path.join(
             configs["paths"]["output_model_runs"], run["name"]
         )
-        postprocess.plot_results(path_to_run_dir,run,run["nodes_with_ci_load"][0])
+        # postprocess.plot_results(path_to_run_dir,run,run["nodes_with_ci_load"][0])
     print("*" * 100)
 
 
