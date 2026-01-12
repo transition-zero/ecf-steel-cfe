@@ -78,15 +78,15 @@ def PrepareNetworkForCFE(
         network.add(
             'Bus',
             ci_storage_bus_name,
-            x = network.buses.x.loc[bus] - 1, # add jitter
-            y = network.buses.y.loc[bus] - 1, # add jitter
+            x = network.buses.x.loc[bus] + 2, # add jitter
+            y = network.buses.y.loc[bus] + 1, # add jitter
         )
 
         # add another H2 bus 
         network.add(
             'Bus',
             ci_bus_name_h2,
-            x = network.buses.x.loc[bus] + 2, # add jitter
+            x = network.buses.x.loc[bus] + 1, # add jitter
             y = network.buses.y.loc[bus] + 2, # add jitter
         )
 
@@ -123,7 +123,7 @@ def PrepareNetworkForCFE(
             carrier = 'hydrogen',
             bus = ci_bus_name_h2,
             # p_set = 100
-            p_set = network.loads_t.p_set[bus] * 0.005
+            p_set = network.loads_t.p_set[bus] * 0.00
         )
         # note no need to subtract load - this is additional load due to electrification
 
@@ -131,8 +131,8 @@ def PrepareNetworkForCFE(
         network.add(
             'Bus',
             ci_storage_bus_name_h2,
-            x = network.buses.x.loc[bus] - 2, # add jitter
-            y = network.buses.y.loc[bus] - 2, # add jitter
+            x = network.buses.x.loc[bus] + 2, # add jitter
+            y = network.buses.y.loc[bus] + 2, # add jitter
         )
 
         # STEP 2:
@@ -178,7 +178,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=0.01,
+            capital_cost=1000, # don't make too low
         )
 
         network.add(
@@ -190,7 +190,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=0.01,
+            capital_cost=1000, # don't make too low
         )
 
         network.add(
@@ -420,7 +420,8 @@ def PrepareNetworkForCFE(
             ci_storage_bus_name_h2 + '-H2 Storage',
             bus = ci_storage_bus_name_h2,
             carrier = 'hydrogen',
-            e_nom_extendable = True,
+            e_nom = 0,
+            # e_nom_extendable = True,
             e_cyclic = True,
             capital_cost = 500,
             standing_loss = 0.0001, # per unit per hour
