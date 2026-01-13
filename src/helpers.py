@@ -62,27 +62,3 @@ def load_brownfield_network(run, configs):
     brownfield_original.import_from_netcdf(brownfield_path)
 
     return brownfield_original
-
-def calculate_annuity(
-        n : int, 
-        r : float,
-) -> float:
-    '''
-
-    Calculate the annuity factor for an asset with lifetime n years and
-    discount rate of r, e.g. annuity(20, 0.05) * 20 = 1.6
-    
-    Inputs:
-    -----------------------------------
-
-        n : asset lifetime (years)
-        r : discount rate (%, decimal point [e.g., 0.04])
-
-    '''
-
-    if isinstance(r, pd.Series):
-        return pd.Series(1/n, index=r.index).where(r == 0, r/(1. - 1./(1.+r)**n))
-    elif r > 0:
-        return r/(1. - 1./(1.+r)**n)
-    else:
-        return 1/n

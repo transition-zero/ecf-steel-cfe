@@ -1,7 +1,7 @@
 import pypsa
 import numpy as np
 import pandas as pd
-from src import helpers
+from tz_pypsa.cost_model import calculate_annuity 
 
 def PrepareNetworkForCFE(
         network: pypsa.Network, 
@@ -212,7 +212,9 @@ def PrepareNetworkForCFE(
             p_nom_max = 10000, # to update, set as 10MW link for now
             # TODO: add realistic capital and marginal costs for electrolyser
             marginal_cost=50,  # USD/MWh, typical electricity cost for H2 production
-            capital_cost= helpers.calculate_annuity(0.1,30) * 0.6e6,  # USD/MW, typical CAPEX for PEM electrolyser - to annualise
+            capital_cost= (calculate_annuity(0.1,30) * 1069200) + 53460,  
+            # overnight capex - https://docs.nrel.gov/docs/fy25osti/92558.pdf
+            # opex - https://docs.nrel.gov/docs/fy24osti/87625.pdf
         )
 
         network.add(
@@ -227,7 +229,7 @@ def PrepareNetworkForCFE(
             p_nom=0,
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
-            capital_cost=helpers.calculate_annuity(0.1,30) * 0.04e6, # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
+            capital_cost=calculate_annuity(0.1,30) * 0.04e6, # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
             marginal_cost=0.01,  # placeholder costs
         )
 
@@ -429,7 +431,7 @@ def PrepareNetworkForCFE(
             e_nom = 0,
             # e_nom_extendable = True,
             e_cyclic = True,
-            capital_cost = helpers.calculate_annuity(0.1,30) * 0.019e6, # DEA 0.019 M€/MWh, USD to EUR was about 1 in 2022.
+            capital_cost = calculate_annuity(0.1,30) * 0.019e6, # DEA 0.019 M€/MWh, USD to EUR was about 1 in 2022.
             standing_loss = 0.0001, # per unit per hour
         )
     return network
