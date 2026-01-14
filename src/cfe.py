@@ -121,16 +121,27 @@ def PrepareNetworkForCFE(
             raise ValueError("Invalid data supplied for ci_load_fraction. Must be float or path to csv.")
         
         # add C&I H2 load
-        # TODO: allow user-defined load, similar to above
-        network.add(
-            "Load",
-            ci_load_name_h2,
-            carrier = 'hydrogen',
-            bus = ci_bus_name_h2,
-            # p_set = 100
-            p_set = network.loads_t.p_set[bus] * h2_load_fraction
-        )
-        # note no need to subtract load - this is additional load due to electrification
+        if isinstance(h2_load_fraction, float):
+            network.add(
+                "Load",
+                ci_load_name_h2,
+                bus = ci_bus_name_h2,
+                carrier = 'hydrogen',
+                p_set = network.loads_t.p_set[bus] * h2_load_fraction,
+            )
+        elif isinstance(h2_load_fraction, str):
+            # retrieve custom load profile from string supplied, which should be the path
+            custom_load_profile = pd.read_csv(h2_load_fraction, index_col=0, parse_dates=True).iloc[:, 0]
+            network.add(
+                "Load",
+                ci_load_name_h2,
+                bus = ci_bus_name_h2,
+                carrier = 'hydrogen',
+                p_set = custom_load_profile,
+            )
+        else:
+            # return error
+            raise ValueError("Invalid data supplied for h2_load_fraction. Must be float or path to csv.")
 
         # add C&I H2 storage bus
         network.add(
@@ -211,7 +222,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=True,
             p_nom_max = 10000, # to update, set as 10MW link for now
             # TODO: add realistic capital and marginal costs for electrolyser
-            marginal_cost=50,  # USD/MWh, typical electricity cost for H2 production
+            marginal_cost=0.01,  # USD/MWh, typical electricity cost for H2 production
             capital_cost= (calculate_annuity(0.1,30) * 1069200) + 53460,  
             # overnight capex - https://docs.nrel.gov/docs/fy25osti/92558.pdf
             # opex - https://docs.nrel.gov/docs/fy24osti/87625.pdf
@@ -240,12 +251,12 @@ def PrepareNetworkForCFE(
             f"{bus} C&I H2 Storage Discharge",
             bus0=ci_storage_bus_name_h2, 
             bus1=ci_bus_name_h2, 
-            efficiency = 0.99,
+            efficiency = 1,
             p_nom=0,
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=10, # placeholder costs
+            capital_cost=calculate_annuity(0.1,30) * 30000, # placeholder costs
         )
 
         # STEP 3:
@@ -420,19 +431,18 @@ def PrepareNetworkForCFE(
             else:
                 raise ValueError(f"Invalid technology: {technology}")
         
-        # Add hydrogen storage unit as H2 steel tank
+        # Add hydrogen storage unit as H2 steel tank @ 200bar
         network.add(
             # TODO: set realistic hydrogen storage parameters
-            # TODO: annualise costs
             "Store",
             ci_storage_bus_name_h2 + '-H2 Storage',
             bus = ci_storage_bus_name_h2,
             carrier = 'hydrogen',
             e_nom = 0,
-            # e_nom_extendable = True,
+            e_nom_extendable = True,
             e_cyclic = True,
-            capital_cost = calculate_annuity(0.1,30) * 0.019e6, # DEA 0.019 M€/MWh, USD to EUR was about 1 in 2022.
-            standing_loss = 0.0001, # per unit per hour
+            capital_cost = calculate_annuity(0.1,30) * 0.017e6, # DEA 0.017 M€/MWh, USD to EUR was about 1 in 2022.
+            standing_loss = 0.0001,
         )
     return network
 
@@ -530,7 +540,7 @@ def apply_cfe_constraint(
         # Constraint 3: Excess
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            CI_GridExport.sum() <= sum(CI_Demand) * max_excess_export,
+            CI_GridExport.sum() <= sum(CI_Demand, CI_H2_Demand) * max_excess_export,
             name=f"cfe-constraint-excess-{bus}",
         )
 
