@@ -469,11 +469,19 @@ def apply_cfe_constraint(
             .values.flatten()
         )
 
-        CI_H2_Demand = (
+        CI_Electrolyser_Demand = (
             n.model.variables['Link-p'].sel(
                 Link=[i for i in n.links.index if ci_identifier in i and 'Electrolyser' in i and bus in i]
             )
             .sum(dims='Link')
+        )
+
+        CI_H2_Demand = (
+            n.loads_t.p_set
+            .filter(regex=bus)
+            .filter(regex=ci_identifier)
+            .filter(regex=r'.*H2.*', axis=1) # include only H2 loads
+            .values.flatten()
         )
 
         CI_StorageCharge = (
@@ -525,14 +533,14 @@ def apply_cfe_constraint(
         # ---------------------------------------------------------------
 
         n.model.add_constraints(
-            CI_Demand == CI_PPA_Clean + CI_PPA_Fossil - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge - CI_H2_Demand,
+            CI_Demand == CI_PPA_Clean + CI_PPA_Fossil - CI_GridExport + CI_GridImport + CI_StorageDischarge - CI_StorageCharge - CI_Electrolyser_Demand,
             name=f"cfe-constraint-hourly-matching-{bus}",
         )
 
         # Constraint 2: CFE target - note the CI_PPA_Fossil is offset by the share of fossil production which must be exported (set by CFE score)
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            ( CI_PPA_Clean - (CI_GridExport - (CI_PPA_Fossil * CFE_Score) ) + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand + CI_H2_Demand).sum() * CFE_Score,
+            ( CI_PPA_Clean - (CI_GridExport - (CI_PPA_Fossil * CFE_Score) ) + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand + CI_Electrolyser_Demand).sum() * CFE_Score,
             name=f"cfe-constraint-target-{bus}",
  
         )
@@ -540,7 +548,7 @@ def apply_cfe_constraint(
         # Constraint 3: Excess
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            CI_GridExport.sum() <= sum(CI_Demand, CI_H2_Demand) * max_excess_export,
+            CI_GridExport.sum() <= (CI_Demand + CI_H2_Demand).sum() * max_excess_export,
             name=f"cfe-constraint-excess-{bus}",
         )
 
