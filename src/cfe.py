@@ -59,7 +59,6 @@ def PrepareNetworkForCFE(
     # This is done by adding a new bus, load, and storage unit to the network.
     # If there is C&I hydrogen demand, this is added as a new H2 bus, connected to the C&I bus via a link.
 
-    # TODO: correct the location jitter
 
     for bus in buses_with_ci_load:
 
@@ -169,7 +168,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=True, # keep this as True to prevent infeasibilities
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=10, # don't make too low to prevent overbuilding
+            capital_cost=10, # low, but not negligible, to prevent overbuilding
         )
 
         network.add(
@@ -181,7 +180,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=10, # don't make too low to prevent overbuilding
+            capital_cost=10, # low, but not negligible, to prevent overbuilding
         )
 
         # C&I system <-> C&I storage
@@ -194,7 +193,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=10, # don't make too low to prevent overbuilding
+            capital_cost=10, # low, but not negligible, to prevent overbuilding
         )
 
         network.add(
@@ -206,7 +205,7 @@ def PrepareNetworkForCFE(
             p_nom_extendable=p_nom_extendable,
             # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=10, # don't make too low to prevent overbuilding
+            capital_cost=10, # low, but not negligible, to prevent overbuilding
         )
 
         network.add(
@@ -220,8 +219,6 @@ def PrepareNetworkForCFE(
             efficiency = 0.7,  # typical electrolyser efficiency (70%)
             p_nom=0,
             p_nom_extendable=True,
-            p_nom_max = 10000, # to update, set as 10MW link for now
-            # TODO: add realistic capital and marginal costs for electrolyser
             marginal_cost=0.01,  # USD/MWh, typical electricity cost for H2 production
             capital_cost= (calculate_annuity(0.1,30) * 1069200) + 53460,  
             # overnight capex - https://docs.nrel.gov/docs/fy25osti/92558.pdf
@@ -229,24 +226,23 @@ def PrepareNetworkForCFE(
         )
 
         network.add(
-            # this represents the compressor from electrolyser to H2 storage
+            # Compressor from electrolyser to H2 storage
             "Link",
             f"{bus} C&I H2 Storage Charge",
             bus0=ci_bus_name_h2, 
             bus1=ci_storage_bus_name_h2,
-            # bus2=ci_bus_name,
             efficiency1 = 0.99,
-            # efficiency2 = -0.07, # represents energy required for compression 
             p_nom=0,
             p_nom_extendable=p_nom_extendable,
-            # add small capital and marginal costs to prevent model infeasibilities
-            capital_cost=calculate_annuity(0.1,30) * 0.04e6, # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
+            capital_cost=calculate_annuity(0.1,30) * 0.04e6*0.01, 
+            # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
+            # source - https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
             marginal_cost=0.01,  # placeholder costs
         )
 
         network.add(
-            # decompression and regulation from pressurised storage
-            # back to low pressure for use in DRI
+            # pressure reduction from H2 storage to DRI application
+            # TODO: find better source for costs
             "Link",
             f"{bus} C&I H2 Storage Discharge",
             bus0=ci_storage_bus_name_h2, 
@@ -254,9 +250,8 @@ def PrepareNetworkForCFE(
             efficiency = 1,
             p_nom=0,
             p_nom_extendable=p_nom_extendable,
-            # add small capital and marginal costs to prevent model infeasibilities
             marginal_cost=0.01, 
-            capital_cost=calculate_annuity(0.1,30) * 30000, # placeholder costs
+            capital_cost=calculate_annuity(0.1,30) * 30000 * 0.01, # placeholder costs
         )
 
         # STEP 3:
@@ -441,7 +436,8 @@ def PrepareNetworkForCFE(
             e_nom = 0,
             e_nom_extendable = True,
             e_cyclic = True,
-            capital_cost = calculate_annuity(0.1,30) * 0.017e6, # DEA 0.017 M€/MWh, USD to EUR was about 1 in 2022.
+            capital_cost = calculate_annuity(0.1,30) * 0.017e6 * 0.01, 
+            # source https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
             standing_loss = 0.0001,
         )
     return network
@@ -552,7 +548,7 @@ def apply_cfe_constraint(
             name=f"cfe-constraint-excess-{bus}",
         )
 
-        # Constraint 4: Battery can only be charged/used by clean PPA (not grid)
+        # Constraint 4: Battery can only be charged by clean PPA (not grid)
         # ---------------------------------------------------------------
         n.model.add_constraints(
             CI_PPA_Clean >= CI_StorageCharge,

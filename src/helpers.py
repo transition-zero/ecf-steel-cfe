@@ -1,7 +1,6 @@
 import os
 import yaml
 import pypsa
-import pandas as pd
 
 
 def setup_dir(path_to_dir):
