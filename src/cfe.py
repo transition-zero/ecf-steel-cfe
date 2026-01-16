@@ -220,7 +220,7 @@ def PrepareNetworkForCFE(
             p_nom=0,
             p_nom_extendable=True,
             marginal_cost=0.01,  # USD/MWh, typical electricity cost for H2 production
-            capital_cost= (calculate_annuity(0.1,30) * 1069200) + 53460,  
+            capital_cost= (calculate_annuity(30,0.1) * 1069200) + 53460,  
             # overnight capex - https://docs.nrel.gov/docs/fy25osti/92558.pdf
             # opex - https://docs.nrel.gov/docs/fy24osti/87625.pdf
         )
@@ -233,8 +233,8 @@ def PrepareNetworkForCFE(
             bus1=ci_storage_bus_name_h2,
             efficiency1 = 0.99,
             p_nom=0,
-            p_nom_extendable=p_nom_extendable,
-            capital_cost=calculate_annuity(0.1,30) * 0.04e6*0.01, 
+            p_nom_extendable=True,
+            capital_cost=calculate_annuity(30,0.1) * 0.04e6, 
             # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
             # source - https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
             marginal_cost=0.01,  # placeholder costs
@@ -249,9 +249,9 @@ def PrepareNetworkForCFE(
             bus1=ci_bus_name_h2, 
             efficiency = 1,
             p_nom=0,
-            p_nom_extendable=p_nom_extendable,
+            p_nom_extendable=True,
             marginal_cost=0.01, 
-            capital_cost=calculate_annuity(0.1,30) * 30000 * 0.01, # placeholder costs
+            capital_cost=calculate_annuity(30,0.1) * 30000, # placeholder costs
         )
 
         # STEP 3:
@@ -436,7 +436,7 @@ def PrepareNetworkForCFE(
             e_nom = 0,
             e_nom_extendable = True,
             e_cyclic = True,
-            capital_cost = calculate_annuity(0.1,30) * 0.017e6 * 0.01, 
+            capital_cost = calculate_annuity(30,0.1) * 0.017e6,
             # source https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
             standing_loss = 0.0001,
         )
