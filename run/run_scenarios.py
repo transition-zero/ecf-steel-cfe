@@ -99,15 +99,15 @@ def RunBrownfieldSimulation(run, configs, env=None):
 
     N_BROWNFIELD = brownfield.SetupBrownfieldNetwork(run, configs)
 
-    N_BROWNFIELD = cfe.PrepareNetworkForCFE(
-        N_BROWNFIELD,
-        buses_with_ci_load=run["nodes_with_ci_load"],
-        ci_load_fraction=run["ci_load_fraction"],
-        technology_palette=configs["technology_palette"][run["palette"]],
-        p_nom_extendable=False,
-    )
+    # N_BROWNFIELD = cfe.PrepareNetworkForCFE(
+    #     N_BROWNFIELD,
+    #     buses_with_ci_load=run["nodes_with_ci_load"],
+    #     ci_load_fraction=run["ci_load_fraction"],
+    #     technology_palette=configs["technology_palette"][run["palette"]],
+    #     p_nom_extendable=False,
+    # )
 
-    print("prepared network for CFE")
+    # print("prepared network for CFE")
     print("Begin solving...")
 
     # lp_model = N_BROWNFIELD.optimize.create_model()
@@ -147,6 +147,15 @@ def RunRES100(
 
     # make a copy of the brownfield
     N_RES_100 = N_BROWNFIELD  # .copy()
+
+    N_RES_100 = cfe.PrepareNetworkForCFE(
+        N_RES_100,
+        buses_with_ci_load=run["nodes_with_ci_load"],
+        ci_load_fraction=run["ci_load_fraction"],
+        h2_load_fraction=run["h2_load_fraction"],
+        technology_palette=configs["technology_palette"][run["palette"]],
+        p_nom_extendable=False,
+    )
 
     # post-process to set what is expandable and non-expandable
     N_RES_100 = PostProcessBrownfield(N_RES_100, ci_identifier=ci_identifier)
@@ -252,7 +261,16 @@ def RunCFE(
 ):
     """Run 24/7 CFE scenario"""
 
-    N_CFE = PostProcessBrownfield(N_BROWNFIELD, ci_identifier=ci_identifier)
+    N_CFE = cfe.PrepareNetworkForCFE(
+        N_BROWNFIELD,
+        buses_with_ci_load=run["nodes_with_ci_load"],
+        ci_load_fraction=run["ci_load_fraction"],
+        h2_load_fraction=run["h2_load_fraction"],
+        technology_palette=configs["technology_palette"][run["palette"]],
+        p_nom_extendable=False,
+    )
+
+    N_CFE = PostProcessBrownfield(N_CFE, ci_identifier=ci_identifier)
 
     # init linopy model
     N_CFE.optimize.create_model()
