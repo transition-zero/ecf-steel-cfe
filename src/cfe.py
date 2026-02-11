@@ -144,7 +144,7 @@ def PrepareNetworkForCFE(
             raise ValueError("Invalid data supplied for h2_load_fraction. Must be float or path to csv.")
 
         # add C&I H2 storage bus
-        if (h2_load_fraction > 0 or isinstance(h2_load_fraction, str)):
+        if (isinstance(h2_load_fraction, str) or h2_load_fraction > 0):
             network.add(
                 'Bus',
                 ci_storage_bus_name_h2,
@@ -210,7 +210,7 @@ def PrepareNetworkForCFE(
             capital_cost=10, # low, but not negligible, to prevent overbuilding
         )
 
-        if (h2_load_fraction > 0 or isinstance(h2_load_fraction, str)):
+        if (isinstance(h2_load_fraction, str) or h2_load_fraction > 0):
             network.add(
                 # Hydrogen carrier kept in MWh units, not tonnes
                 "Link",
@@ -430,7 +430,7 @@ def PrepareNetworkForCFE(
                 raise ValueError(f"Invalid technology: {technology}")
         
         # Add hydrogen storage unit as H2 steel tank @ 200bar
-        if (h2_load_fraction > 0 or isinstance(h2_load_fraction, str)):
+        if (isinstance(h2_load_fraction, str) or h2_load_fraction > 0):
             network.add(
                 # TODO: set realistic hydrogen storage parameters
                 "Store",
@@ -475,6 +475,7 @@ def apply_cfe_constraint(
             )
             .sum(dims='Link')
         )
+        print(CI_Electrolyser_Demand)
 
         CI_H2_Demand = (
             n.loads_t.p_set
@@ -483,6 +484,7 @@ def apply_cfe_constraint(
             .filter(regex=r'.*H2.*', axis=1) # include only H2 loads
             .values.flatten()
         )
+        print(CI_H2_Demand)
 
         CI_StorageCharge = (
             n.model.variables['Link-p'].sel(
