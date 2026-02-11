@@ -3,6 +3,8 @@ import sys
 
 import pandas as pd
 import pypsa
+import numpy as np
+from linopy import LinearExpression
 
 from src import brownfield, cfe, helpers, postprocess
 
@@ -172,14 +174,16 @@ def RunRES100(
             .filter(regex=bus)
             .filter(regex=ci_identifier)
             .filter(regex=r'^(?!.*H2).*', axis=1) # exclude H2 loads
-            .values.flatten()
+            .sum()
+            .sum()
         )
 
         CI_Electrolyser_Demand = (
             N_RES_100.model.variables['Link-p'].sel(
-                Link=[i for i in N_RES_100.links.index if ci_identifier in i and 'Electrolyser' in i and bus in i]
+            Link=[i for i in N_RES_100.links.index if ci_identifier in i and 'Electrolyser' in i and bus in i]
             )
             .sum(dims='Link')
+            .sum()
         )
 
         CI_H2_Demand = (
@@ -234,7 +238,8 @@ def RunRES100(
         # Constraint 1: Annual matching
         # ---------------------------------------------------------------
         N_RES_100.model.add_constraints(
-            CI_PPA >= (res_target / 100) * (CI_Demand + CI_Electrolyser_Demand),
+            CI_PPA - ((res_target / 100) * CI_Electrolyser_Demand.sum()) 
+            >= (res_target / 100) * (CI_Demand.sum()),
             name=f"{res_target}_RES_constraint_{bus}",
         )
 
@@ -242,7 +247,7 @@ def RunRES100(
         # ---------------------------------------------------------------
         N_RES_100.model.add_constraints(
             CI_GridExport.sum()
-            <= (CI_Demand + CI_Electrolyser_Demand) * configs["global_vars"]["maximum_excess_export_res100"],
+            <= (CI_Demand) * configs["global_vars"]["maximum_excess_export_res100"],
         )
 
         # Apply all the original brownfield constraints

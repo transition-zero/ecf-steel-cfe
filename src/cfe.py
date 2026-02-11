@@ -475,7 +475,6 @@ def apply_cfe_constraint(
             )
             .sum(dims='Link')
         )
-        print(CI_Electrolyser_Demand)
 
         CI_H2_Demand = (
             n.loads_t.p_set
@@ -484,7 +483,10 @@ def apply_cfe_constraint(
             .filter(regex=r'.*H2.*', axis=1) # include only H2 loads
             .values.flatten()
         )
-        print(CI_H2_Demand)
+        # If there is no H2 load, make CI_H2_Demand an array of zeros with same shape as CI_Demand
+        if CI_H2_Demand.size == 0:
+            CI_H2_Demand = np.zeros_like(CI_Demand)
+        
 
         CI_StorageCharge = (
             n.model.variables['Link-p'].sel(
