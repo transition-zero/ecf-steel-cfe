@@ -152,7 +152,8 @@ def RunRES100(
         N_RES_100,
         buses_with_ci_load=run["nodes_with_ci_load"],
         ci_load_fraction=run["ci_load_fraction"],
-        h2_load_fraction=run["h2_load_fraction"],
+        # Use a default of 0.0 for backwards compatibility when h2_load_fraction is not specified
+        h2_load_fraction=run.get("h2_load_fraction", 0.0),
         technology_palette=configs["technology_palette"][run["palette"]],
         p_nom_extendable=False,
     )
