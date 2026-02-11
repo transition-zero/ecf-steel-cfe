@@ -246,7 +246,7 @@ def RunRES100(
         # Constraint 2: Excess (export from C&I system to grid)
         # ---------------------------------------------------------------
         N_RES_100.model.add_constraints(
-            CI_GridExport.sum()
+            CI_GridExport.sum() - (CI_Electrolyser_Demand.sum() * configs["global_vars"]["maximum_excess_export_res100"])
             <= (CI_Demand) * configs["global_vars"]["maximum_excess_export_res100"],
         )
 
