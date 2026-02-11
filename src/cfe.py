@@ -26,10 +26,10 @@ def PrepareNetworkForCFE(
         List of buses on which to model a C&I system/asset.
     ci_load_fraction : float or str
         If float, a fraction of the original load to be assigned to the C&I load.
-        If string 'custom', the user must define custom load profiles for each C&I load separately.
+        If string, it is interpreted as a path to a CSV file from which custom C&I load profiles are loaded.
     h2_load_fraction : float or str
         If float, a fraction of the original C&I load to be assigned to the C&I hydrogen load.
-        If string 'custom', the user must define custom load profiles for each C&I hydrogen load separately.
+        If string, it is interpreted as a path to a CSV file from which custom C&I hydrogen load profiles are loaded.
     technology_palette : list
         List of technologies (generators and storages) to add to the C&I system.
     p_nom_extendable : bool
@@ -217,7 +217,7 @@ def PrepareNetworkForCFE(
                 f"{bus} C&I H2 Electrolyser",
                 bus0=ci_bus_name,
                 bus1=ci_bus_name_h2,
-                carrier = 'Electrolysis',
+                carrier = 'electrolysis',
                 # TODO: set realistic electrolyser parameters
                 efficiency = 0.7,  # typical electrolyser efficiency (70%)
                 p_nom=0,
@@ -234,7 +234,7 @@ def PrepareNetworkForCFE(
                 f"{bus} C&I H2 Storage Charge",
                 bus0=ci_bus_name_h2, 
                 bus1=ci_storage_bus_name_h2,
-                efficiency1 = 0.99,
+                efficiency = 0.99,
                 p_nom=0,
                 p_nom_extendable=True,
                 capital_cost=calculate_annuity(30,0.1) * 0.04e6, 
