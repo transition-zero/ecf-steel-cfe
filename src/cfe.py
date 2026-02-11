@@ -121,12 +121,13 @@ def PrepareNetworkForCFE(
         
         # add C&I H2 load
         if isinstance(h2_load_fraction, float):
-            network.add(
-                "Load",
-                ci_load_name_h2,
-                bus = ci_bus_name_h2,
-                carrier = 'hydrogen',
-                p_set = network.loads_t.p_set[bus] * h2_load_fraction,
+            if h2_load_fraction > 0:
+                network.add(
+                    "Load",
+                    ci_load_name_h2,
+                    bus = ci_bus_name_h2,
+                    carrier = 'hydrogen',
+                    p_set = network.loads_t.p_set[bus] * h2_load_fraction,
             )
         elif isinstance(h2_load_fraction, str):
             # retrieve custom load profile from string supplied, which should be the path
@@ -143,12 +144,13 @@ def PrepareNetworkForCFE(
             raise ValueError("Invalid data supplied for h2_load_fraction. Must be float or path to csv.")
 
         # add C&I H2 storage bus
-        network.add(
-            'Bus',
-            ci_storage_bus_name_h2,
-            x = network.buses.x.loc[bus] + 2, # add jitter
-            y = network.buses.y.loc[bus] + 2, # add jitter
-        )
+        if (h2_load_fraction > 0 or isinstance(h2_load_fraction, str)):
+            network.add(
+                'Bus',
+                ci_storage_bus_name_h2,
+                x = network.buses.x.loc[bus] + 2, # add jitter
+                y = network.buses.y.loc[bus] + 2, # add jitter
+            )
 
         # STEP 2:
         # Add virtual links between buses to represent flows of electricity.
@@ -208,51 +210,52 @@ def PrepareNetworkForCFE(
             capital_cost=10, # low, but not negligible, to prevent overbuilding
         )
 
-        network.add(
-            # Hydrogen carrier kept in MWh units, not tonnes
-            "Link",
-            f"{bus} C&I H2 Electrolyser",
-            bus0=ci_bus_name,
-            bus1=ci_bus_name_h2,
-            carrier = 'Electrolysis',
-            # TODO: set realistic electrolyser parameters
-            efficiency = 0.7,  # typical electrolyser efficiency (70%)
-            p_nom=0,
-            p_nom_extendable=True,
-            marginal_cost=0.01,  # USD/MWh, typical electricity cost for H2 production
-            capital_cost= (calculate_annuity(30,0.1) * 1069200) + 53460,  
-            # overnight capex - https://docs.nrel.gov/docs/fy25osti/92558.pdf
-            # opex - https://docs.nrel.gov/docs/fy24osti/87625.pdf
-        )
+        if (h2_load_fraction > 0 or isinstance(h2_load_fraction, str)):
+            network.add(
+                # Hydrogen carrier kept in MWh units, not tonnes
+                "Link",
+                f"{bus} C&I H2 Electrolyser",
+                bus0=ci_bus_name,
+                bus1=ci_bus_name_h2,
+                carrier = 'Electrolysis',
+                # TODO: set realistic electrolyser parameters
+                efficiency = 0.7,  # typical electrolyser efficiency (70%)
+                p_nom=0,
+                p_nom_extendable=True,
+                marginal_cost=0.01,  # USD/MWh, typical electricity cost for H2 production
+                capital_cost= (calculate_annuity(30,0.1) * 1069200) + 53460,  
+                # overnight capex - https://docs.nrel.gov/docs/fy25osti/92558.pdf
+                # opex - https://docs.nrel.gov/docs/fy24osti/87625.pdf
+            )
 
-        network.add(
-            # Compressor from electrolyser to H2 storage
-            "Link",
-            f"{bus} C&I H2 Storage Charge",
-            bus0=ci_bus_name_h2, 
-            bus1=ci_storage_bus_name_h2,
-            efficiency1 = 0.99,
-            p_nom=0,
-            p_nom_extendable=True,
-            capital_cost=calculate_annuity(30,0.1) * 0.04e6, 
-            # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
-            # source - https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
-            marginal_cost=0.01,  # placeholder costs
-        )
+            network.add(
+                # Compressor from electrolyser to H2 storage
+                "Link",
+                f"{bus} C&I H2 Storage Charge",
+                bus0=ci_bus_name_h2, 
+                bus1=ci_storage_bus_name_h2,
+                efficiency1 = 0.99,
+                p_nom=0,
+                p_nom_extendable=True,
+                capital_cost=calculate_annuity(30,0.1) * 0.04e6, 
+                # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
+                # source - https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
+                marginal_cost=0.01,  # placeholder costs
+            )
 
-        network.add(
-            # pressure reduction from H2 storage to DRI application
-            # TODO: find better source for costs
-            "Link",
-            f"{bus} C&I H2 Storage Discharge",
-            bus0=ci_storage_bus_name_h2, 
-            bus1=ci_bus_name_h2, 
-            efficiency = 1,
-            p_nom=0,
-            p_nom_extendable=True,
-            marginal_cost=0.01, 
-            capital_cost=calculate_annuity(30,0.1) * 30000, # placeholder costs
-        )
+            network.add(
+                # pressure reduction from H2 storage to DRI application
+                # TODO: find better source for costs
+                "Link",
+                f"{bus} C&I H2 Storage Discharge",
+                bus0=ci_storage_bus_name_h2, 
+                bus1=ci_bus_name_h2, 
+                efficiency = 1,
+                p_nom=0,
+                p_nom_extendable=True,
+                marginal_cost=0.01, 
+                capital_cost=calculate_annuity(30,0.1) * 30000, # placeholder costs
+            )
 
         # STEP 3:
         # Add generators and storages to C&I bus within the technology palette. 
@@ -427,19 +430,20 @@ def PrepareNetworkForCFE(
                 raise ValueError(f"Invalid technology: {technology}")
         
         # Add hydrogen storage unit as H2 steel tank @ 200bar
-        network.add(
-            # TODO: set realistic hydrogen storage parameters
-            "Store",
-            ci_storage_bus_name_h2 + '-H2 Storage',
-            bus = ci_storage_bus_name_h2,
-            carrier = 'hydrogen',
-            e_nom = 0,
-            e_nom_extendable = True,
-            e_cyclic = True,
-            capital_cost = calculate_annuity(30,0.1) * 0.017e6,
-            # source https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
-            standing_loss = 0.0001,
-        )
+        if (h2_load_fraction > 0 or isinstance(h2_load_fraction, str)):
+            network.add(
+                # TODO: set realistic hydrogen storage parameters
+                "Store",
+                ci_storage_bus_name_h2 + '-H2 Storage',
+                bus = ci_storage_bus_name_h2,
+                carrier = 'hydrogen',
+                e_nom = 0,
+                e_nom_extendable = True,
+                e_cyclic = True,
+                capital_cost = calculate_annuity(30,0.1) * 0.017e6,
+                # source https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
+                standing_loss = 0.0001,
+            )
     return network
 
 
