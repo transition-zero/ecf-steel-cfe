@@ -3,8 +3,6 @@ import sys
 
 import pandas as pd
 import pypsa
-import numpy as np
-from linopy import LinearExpression
 
 from src import brownfield, cfe, helpers, postprocess
 
