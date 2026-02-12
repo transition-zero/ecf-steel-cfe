@@ -99,15 +99,15 @@ def RunBrownfieldSimulation(run, configs, env=None):
 
     N_BROWNFIELD = brownfield.SetupBrownfieldNetwork(run, configs)
 
-    N_BROWNFIELD = cfe.PrepareNetworkForCFE(
-        N_BROWNFIELD,
-        buses_with_ci_load=run["nodes_with_ci_load"],
-        ci_load_fraction=run["ci_load_fraction"],
-        technology_palette=configs["technology_palette"][run["palette"]],
-        p_nom_extendable=False,
-    )
+    # N_BROWNFIELD = cfe.PrepareNetworkForCFE(
+    #     N_BROWNFIELD,
+    #     buses_with_ci_load=run["nodes_with_ci_load"],
+    #     ci_load_fraction=run["ci_load_fraction"],
+    #     technology_palette=configs["technology_palette"][run["palette"]],
+    #     p_nom_extendable=False,
+    # )
 
-    print("prepared network for CFE")
+    # print("prepared network for CFE")
     print("Begin solving...")
 
     # lp_model = N_BROWNFIELD.optimize.create_model()
@@ -148,6 +148,16 @@ def RunRES100(
     # make a copy of the brownfield
     N_RES_100 = N_BROWNFIELD  # .copy()
 
+    N_RES_100 = cfe.PrepareNetworkForCFE(
+        N_RES_100,
+        buses_with_ci_load=run["nodes_with_ci_load"],
+        ci_load_fraction=run["ci_load_fraction"],
+        # Use a default of 0.0 for backwards compatibility when h2_load_fraction is not specified
+        h2_load_fraction=run.get("h2_load_fraction", 0.0),
+        technology_palette=configs["technology_palette"][run["palette"]],
+        p_nom_extendable=False,
+    )
+
     # post-process to set what is expandable and non-expandable
     N_RES_100 = PostProcessBrownfield(N_RES_100, ci_identifier=ci_identifier)
 
@@ -158,10 +168,28 @@ def RunRES100(
 
         # get total C&I load (float)
         CI_Demand = (
-            N_RES_100.loads_t.p_set.filter(regex=bus)
+            N_RES_100.loads_t.p_set
+            .filter(regex=bus)
             .filter(regex=ci_identifier)
+            .filter(regex=r'^(?!.*H2).*', axis=1) # exclude H2 loads
             .sum()
             .sum()
+        )
+
+        CI_Electrolyser_Demand = (
+            N_RES_100.model.variables['Link-p'].sel(
+            Link=[i for i in N_RES_100.links.index if ci_identifier in i and 'Electrolyser' in i and bus in i]
+            )
+            .sum(dims='Link')
+            .sum()
+        )
+
+        CI_H2_Demand = (
+            N_RES_100.loads_t.p_set
+            .filter(regex=bus)
+            .filter(regex=ci_identifier)
+            .filter(regex=r'.*H2.*', axis=1) # include only H2 loads
+            .values.flatten()
         )
 
         # get grid exports
@@ -208,15 +236,16 @@ def RunRES100(
         # Constraint 1: Annual matching
         # ---------------------------------------------------------------
         N_RES_100.model.add_constraints(
-            CI_PPA >= (res_target / 100) * CI_Demand,
+            CI_PPA - ((res_target / 100) * CI_Electrolyser_Demand.sum()) 
+            >= (res_target / 100) * (CI_Demand.sum()),
             name=f"{res_target}_RES_constraint_{bus}",
         )
 
         # Constraint 2: Excess (export from C&I system to grid)
         # ---------------------------------------------------------------
         N_RES_100.model.add_constraints(
-            CI_GridExport.sum()
-            <= CI_Demand * configs["global_vars"]["maximum_excess_export_res100"],
+            CI_GridExport.sum() - (CI_Electrolyser_Demand.sum() * configs["global_vars"]["maximum_excess_export_res100"])
+            <= (CI_Demand) * configs["global_vars"]["maximum_excess_export_res100"],
         )
 
         # Apply all the original brownfield constraints
@@ -252,7 +281,16 @@ def RunCFE(
 ):
     """Run 24/7 CFE scenario"""
 
-    N_CFE = PostProcessBrownfield(N_BROWNFIELD, ci_identifier=ci_identifier)
+    N_CFE = cfe.PrepareNetworkForCFE(
+        N_BROWNFIELD,
+        buses_with_ci_load=run["nodes_with_ci_load"],
+        ci_load_fraction=run["ci_load_fraction"],
+        h2_load_fraction=run["h2_load_fraction"],
+        technology_palette=configs["technology_palette"][run["palette"]],
+        p_nom_extendable=False,
+    )
+
+    N_CFE = PostProcessBrownfield(N_CFE, ci_identifier=ci_identifier)
 
     # init linopy model
     N_CFE.optimize.create_model()
