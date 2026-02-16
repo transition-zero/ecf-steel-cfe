@@ -27,6 +27,13 @@ for sheet_name, df in sheets.items():
         df = df.drop(columns=['Year'])
     # Assign 'Date' column from test_dates
     df['Date'] = test_dates
+    # Multiplier for H2_demand sheets
+    h2_multiplier = 33330000
+    # If sheet name contains 'H2_demand', multiply load columns by the multiplier
+    if 'H2_demand' in sheet_name:
+        for region in region_map.keys():
+            if region in df.columns:
+                df[region] = df[region] * h2_multiplier
     # Ensure output directory exists
     sheet_dir = os.path.join(output_base, sheet_name)
     os.makedirs(sheet_dir, exist_ok=True)
