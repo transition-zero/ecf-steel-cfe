@@ -542,9 +542,10 @@ def apply_cfe_constraint(
         )
 
         # Constraint 2: CFE target - note the CI_PPA_Fossil is offset by the share of fossil production which must be exported (set by CFE score)
+        # Note also the green H2 must be fully supplied by clean electricity
         # ---------------------------------------------------------------
         n.model.add_constraints(
-            ( CI_PPA_Clean - (CI_GridExport - (CI_PPA_Fossil * CFE_Score) ) + (CI_GridImport * list(GridCFE) ) ).sum() >= ( (CI_StorageCharge - CI_StorageDischarge) + CI_Demand + CI_Electrolyser_Demand).sum() * CFE_Score,
+            ( CI_PPA_Clean - (CI_GridExport - (CI_PPA_Fossil * CFE_Score) ) + (CI_GridImport * list(GridCFE) ) ).sum() >= ( ((CI_StorageCharge - CI_StorageDischarge) + CI_Demand).sum() * CFE_Score) + (CI_Electrolyser_Demand).sum(),
             name=f"cfe-constraint-target-{bus}",
  
         )
