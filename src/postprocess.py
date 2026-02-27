@@ -50,29 +50,29 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
                                        path_to_run_dir=path_to_run_dir,
                                        work_sans_font=work_sans_font)
     
-    plot_ci_and_parent_generation(solved_networks=solved_networks,
-                                  path_to_run_dir=path_to_run_dir,
-                                  nodes_with_ci_loads=nodes_with_ci_loads,
-                                  work_sans_font=work_sans_font)
+    # plot_ci_and_parent_generation(solved_networks=solved_networks,
+    #                               path_to_run_dir=path_to_run_dir,
+    #                               nodes_with_ci_loads=nodes_with_ci_loads,
+    #                               work_sans_font=work_sans_font)
 
-    plot_ci_and_parent_capacity(solved_networks=solved_networks,
-                                  path_to_run_dir=path_to_run_dir,
-                                  nodes_with_ci_loads=nodes_with_ci_loads,
-                                  work_sans_font=work_sans_font)
+    # plot_ci_and_parent_capacity(solved_networks=solved_networks,
+    #                               path_to_run_dir=path_to_run_dir,
+    #                               nodes_with_ci_loads=nodes_with_ci_loads,
+    #                               work_sans_font=work_sans_font)
     
     plot_ci_energy_balance(solved_networks=solved_networks,
                                        path_to_run_dir=path_to_run_dir,
                                        work_sans_font=work_sans_font)
 
-    plot_ci_unit_cost_of_electricity(solved_networks=solved_networks,
-                                     path_to_run_dir=path_to_run_dir,
-                                     work_sans_font=work_sans_font)
+    # plot_ci_unit_cost_of_electricity(solved_networks=solved_networks,
+    #                                  path_to_run_dir=path_to_run_dir,
+    #                                  work_sans_font=work_sans_font)
     
-    plot_ci_unit_cost_of_electricity_alt(solved_networks=solved_networks,
-                                        path_to_run_dir=path_to_run_dir,
-                                        import_tariff=83.56, # in USD/MWh
-                                        export_tariff=36.33, # in USD/MWh
-                                        work_sans_font=work_sans_font)
+    # plot_ci_unit_cost_of_electricity_alt(solved_networks=solved_networks,
+    #                                     path_to_run_dir=path_to_run_dir,
+    #                                     import_tariff=83.56, # in USD/MWh
+    #                                     export_tariff=36.33, # in USD/MWh
+    #                                     work_sans_font=work_sans_font)
 
     plot_relative_emissions_by_scenario(solved_networks=solved_networks,
                                         path_to_run_dir=path_to_run_dir,
@@ -82,45 +82,45 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
                                           path_to_run_dir=path_to_run_dir,
                                           work_sans_font=work_sans_font)
     
-    plot_ci_emission_rate_by_scenario(solved_networks=solved_networks,
-                                      path_to_run_dir=path_to_run_dir,
-                                      nodes_with_ci_loads=nodes_with_ci_loads,
-                                      run=run,
-                                      work_sans_font=work_sans_font)
+    # plot_ci_emission_rate_by_scenario(solved_networks=solved_networks,
+    #                                   path_to_run_dir=path_to_run_dir,
+    #                                   nodes_with_ci_loads=nodes_with_ci_loads,
+    #                                   run=run,
+    #                                   work_sans_font=work_sans_font)
 
     plot_total_system_costs_by_scenario(solved_networks=solved_networks,
                                         path_to_run_dir=path_to_run_dir,
                                         work_sans_font=work_sans_font)
 
-    plot_system_generation_mix(solved_networks=solved_networks,
-                               path_to_run_dir=path_to_run_dir,
-                               work_sans_font=work_sans_font)
+    # plot_system_generation_mix(solved_networks=solved_networks,
+    #                            path_to_run_dir=path_to_run_dir,
+    #                            work_sans_font=work_sans_font)
     
-    plot_system_capacity_mix(solved_networks=solved_networks,
-                             path_to_run_dir=path_to_run_dir,
-                             work_sans_font=work_sans_font)
+    # plot_system_capacity_mix(solved_networks=solved_networks,
+    #                          path_to_run_dir=path_to_run_dir,
+    #                          work_sans_font=work_sans_font)
 
     # plot_system_unit_cost_by_scenario(solved_networks=solved_networks,
     #                                   path_to_run_dir=path_to_run_dir,
     #                                   work_sans_font=work_sans_font)
 
-    plot_system_costs_vs_benefits(solved_networks=solved_networks,
-                                                path_to_run_dir=path_to_run_dir,
-                                                work_sans_font=work_sans_font)
+    # plot_system_costs_vs_benefits(solved_networks=solved_networks,
+    #                                             path_to_run_dir=path_to_run_dir,
+    #                                             work_sans_font=work_sans_font)
     
-    plot_ci_curtailment(solved_networks=solved_networks,
-                        path_to_run_dir=path_to_run_dir,
-                        work_sans_font=work_sans_font)
+    # plot_ci_curtailment(solved_networks=solved_networks,
+    #                     path_to_run_dir=path_to_run_dir,
+    #                     work_sans_font=work_sans_font)
 
-    plot_cfe_score_heatmaps(solved_networks=solved_networks,
-                            path_to_run_dir=path_to_run_dir,
-                            run=run,
-                            work_sans_font_medium=work_sans_font_medium)
+    # plot_cfe_score_heatmaps(solved_networks=solved_networks,
+    #                         path_to_run_dir=path_to_run_dir,
+    #                         run=run,
+    #                         work_sans_font_medium=work_sans_font_medium)
     
-    plot_monthly_cfe_score_heatmaps(solved_networks=solved_networks,
-                                    path_to_run_dir=path_to_run_dir,
-                                    run=run,
-                                    work_sans_font_medium=work_sans_font_medium)
+    # plot_monthly_cfe_score_heatmaps(solved_networks=solved_networks,
+    #                                 path_to_run_dir=path_to_run_dir,
+    #                                 run=run,
+    #                                 work_sans_font_medium=work_sans_font_medium)
 
 
 def aggregate_capacity(
@@ -500,7 +500,7 @@ def plot_ci_portfolio_procurement_cost(solved_networks, path_to_run_dir, work_sa
     fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[1,10], figsize=(6,4))
 
      # load list of C&I carriers to be plot
-    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_am_RES100_2030'])
 
     ci_procurement_cost = (
         pd.concat(
