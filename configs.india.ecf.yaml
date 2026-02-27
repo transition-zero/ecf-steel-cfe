@@ -68,7 +68,7 @@ constraints:
     fossil_generator_['INDWE']: ['INDWE C&I Grid-hydrogen-blend-ccgt-ext-2030-PPA-Fossil']
 
 model_runs:
-  - name: INDWE_test
+  - name: INDWE_test_1702_40h2
     palette: palette_1
     stock_model: India
     select_nodes:
@@ -86,12 +86,12 @@ model_runs:
       # - 0.95
       # - 0.99
       # - 1.0
-    ci_load_fraction: 0.05
-    # ci_load_fraction: '/home/irfanmohamed/ecf-steel-cfe/data/eaf_load.csv'
+    # ci_load_fraction: 0.05
+    ci_load_fraction: '/home/irfanmohamed/ecf-steel-cfe/data/load_curve_40_H2/INDWE.csv'
     # percentage of bus-level demand that is attributed to participating C&I consumers (e.g., 0.2 = 20% of bus demand is C&I)
     # if a string is supplied, this must be the path to a CSV file with custom load profiles for the C&I load
-    h2_load_fraction: 0.0
-    # h2_load_fraction: '/home/irfanmohamed/ecf-steel-cfe/data/h2_load.csv'
+    # h2_load_fraction: 0.0
+    h2_load_fraction: '/home/irfanmohamed/ecf-steel-cfe/data/H2_demand_40_H2/INDWE.csv'
     allow_grid_expansion: false # if true, the model will allow interconnector (link) expansion
     allow_generation_expansion: false # if true, the model will allow generation expansion, if false, will leave as it
     allow_storage_expansion: false # if true, the model will allow storage expansion, if false, will leave as it
@@ -115,8 +115,8 @@ technology_palette:
     - combined-cycle-h2
 
 solver:
-  name: gurobi
-  options: gurobi-default
+  name: highs
+  options: highs-simplex
 
 solver_options:
   highs-default:
@@ -134,8 +134,8 @@ solver_options:
   highs-simplex:
     solver: "simplex"
     parallel: "on"
-    primal_feasibility_tolerance: 1e-5
-    dual_feasibility_tolerance: 1e-5
+    primal_feasibility_tolerance: 1e-4
+    dual_feasibility_tolerance: 1e-4
     random_seed: 123
   gurobi-default:
     threads: 8

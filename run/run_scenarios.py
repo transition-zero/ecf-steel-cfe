@@ -119,6 +119,7 @@ def RunBrownfieldSimulation(run, configs, env=None):
         solver_options=configs["solver_options"][configs["solver"]["options"]],
         io_api="direct",
         env=env,
+        log_to_console=False,
     )
 
     brownfield_path = os.path.join(
@@ -257,6 +258,7 @@ def RunRES100(
         solver_options=configs["solver_options"][configs["solver"]["options"]],
         io_api="direct",
         env=env,
+        log_to_console=False
     )
 
     N_RES_100.export_to_netcdf(
@@ -342,6 +344,7 @@ def RunCFE(
         solver_options=configs["solver_options"][configs["solver"]["options"]],
         io_api="direct",
         env=env,
+        log_to_console=False
     )
 
     # get GridCFE
@@ -373,6 +376,7 @@ def RunCFE(
             solver_options=configs["solver_options"][configs["solver"]["options"]],
             io_api="direct",
             env=env,
+            log_to_console=False
         )
         GridCFE = GetGridCFE(N_CFE, ci_identifier, run=run)
         count += 1
