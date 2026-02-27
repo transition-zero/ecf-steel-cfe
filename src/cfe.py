@@ -219,13 +219,12 @@ def PrepareNetworkForCFE(
                 bus1=ci_bus_name_h2,
                 carrier = 'electrolysis',
                 # TODO: set realistic electrolyser parameters
-                efficiency = 0.7,  # typical electrolyser efficiency (70%)
+                efficiency = 0.585,
                 p_nom=0,
                 p_nom_extendable=True,
-                marginal_cost=0.01,  # USD/MWh, typical electricity cost for H2 production
-                capital_cost= (calculate_annuity(30,0.1) * 1069200) + 53460,  
-                # overnight capex - https://docs.nrel.gov/docs/fy25osti/92558.pdf
-                # opex - https://docs.nrel.gov/docs/fy24osti/87625.pdf
+                marginal_cost=0.01,  # representative cost
+                capital_cost= (calculate_annuity(25,0.1) * 757000) + 0.02*757000, 
+                # data source: https://ens.dk/en/analyses-and-statistics/technology-data-renewable-fuels
             )
 
             network.add(
@@ -234,13 +233,13 @@ def PrepareNetworkForCFE(
                 f"{bus} C&I H2 Storage Charge",
                 bus0=ci_bus_name_h2, 
                 bus1=ci_storage_bus_name_h2,
-                efficiency = 0.99,
+                efficiency = 0.89,
                 p_nom=0,
                 p_nom_extendable=True,
-                capital_cost=calculate_annuity(30,0.1) * 0.04e6, 
+                capital_cost=(calculate_annuity(30,0.1) * 0.029e6) + 620, 
                 # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
                 # source - https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
-                marginal_cost=0.01,  # placeholder costs
+                marginal_cost=0.01,  # representative costs
             )
 
             network.add(
@@ -254,7 +253,7 @@ def PrepareNetworkForCFE(
                 p_nom=0,
                 p_nom_extendable=True,
                 marginal_cost=0.01, 
-                capital_cost=calculate_annuity(30,0.1) * 30000, # placeholder costs
+                capital_cost=1, # representative costs
             )
 
         # STEP 3:
@@ -440,9 +439,9 @@ def PrepareNetworkForCFE(
                 e_nom = 0,
                 e_nom_extendable = True,
                 e_cyclic = True,
-                capital_cost = calculate_annuity(30,0.1) * 0.017e6,
+                capital_cost = calculate_annuity(30,0.1) * 0.029e6,
                 # source https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
-                standing_loss = 0.0001,
+                standing_loss = 0.0,
             )
     return network
 
