@@ -439,7 +439,7 @@ def PrepareNetworkForCFE(
                 e_nom = 0,
                 e_nom_extendable = True,
                 e_cyclic = True,
-                capital_cost = calculate_annuity(30,0.1) * 0.029e6,
+                capital_cost = calculate_annuity(20,0.1) * 0.029e6,
                 # source https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
                 standing_loss = 0.0,
             )
