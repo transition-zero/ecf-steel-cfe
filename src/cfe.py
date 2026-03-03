@@ -569,5 +569,12 @@ def apply_cfe_constraint(
             CI_GridExport >= CI_PPA_Fossil * CFE_Score,
             name=f"cfe-constraint-fossil-excess-{bus}",
         )
+
+        # Constraint 6: Green H2 electrolyser demand must be met with clean electricity at all times
+        # ---------------------------------------------------------------
+        n.model.add_constraints(
+            CI_PPA_Clean - CI_GridExport >= (CI_StorageCharge - CI_StorageDischarge) + CI_Electrolyser_Demand,
+            name=f"cfe-constraint-green-h2-{bus}",
+        )
     
     return n
