@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import pandas as pd
+import pypsa
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
@@ -33,7 +34,7 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     )
 
     # load list of C&I carriers to be plot
-    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_am_RES100_2030'])
 
     # Add Work Sans font to matplotlib
     work_sans_path_light = './assets/WorkSans-Light.ttf'
@@ -122,6 +123,8 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     #                                 run=run,
     #                                 work_sans_font_medium=work_sans_font_medium)
 
+    plot_lcoh(solved_networks=solved_networks,
+              path_to_run_dir=path_to_run_dir)
 
 def aggregate_capacity(
         scenarios,
@@ -2156,3 +2159,43 @@ def plot_monthly_cfe_score_heatmaps(solved_networks, path_to_run_dir, run, work_
             ),
             bbox_inches='tight'
         )
+
+def plot_lcoh(solved_networks, path_to_run_dir):
+    """
+    Plot LCOH for each scenario.
+    """
+    # ------------------------------------------------------------------
+    # LCOH
+    print('Creating LCOH plot')
+
+    # for k in solved_networks.keys():
+    #     if not 'n_bf' in k:
+    #         lcoh_usd_mwh = cget.calculate_lcoh(solved_networks[k])["LCOH (USD/MWh)"]
+    #         lcoh_usd_kg = cget.calculate_lcoh(solved_networks[k])["LCOH (USD/kg)"]
+    
+    
+
+    filtered_keys = [k for k in solved_networks.keys() if 'n_bf' not in k]
+    lcoh_table = (
+        pd
+        .DataFrame({
+            'name' : filtered_keys,
+            'lcoh' : [
+                cget.calculate_lcoh(solved_networks[k])["LCOH (USD/kg)"]
+                for k in filtered_keys
+            ]
+        })
+        .pipe(
+            cget.split_scenario_col,
+            'name',
+        )
+        .sort_values('CFE Score')
+    )
+
+    # save df
+    (lcoh_table).to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/15_lcoh.csv'
+        ),
+        index=True
+    )    

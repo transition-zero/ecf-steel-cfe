@@ -328,6 +328,64 @@ def get_ci_carriers(n: pypsa.Network) -> pd.DataFrame:
     '''Returns the C&I carriers
     '''
     ci_carriers = list(n.generators[n.generators.index.str.contains('C&I')].carrier.unique()) + \
-              list(n.storage_units[n.storage_units.index.str.contains('C&I')].carrier.unique())
+              list(n.storage_units[n.storage_units.index.str.contains('C&I')].carrier.unique()) + \
+              list(n.links[n.links.index.str.contains('H2')].carrier.unique()) + \
+              list(n.stores[n.stores.index.str.contains('H2')].carrier.unique())
 
     return (n.carriers.loc[ci_carriers, 'nice_name'])
+
+
+def calculate_lcoh(
+    n: pypsa.Network,
+    electrolyser: str = "INDWE C&I H2 Electrolyser",
+    compressor: str = "INDWE C&I H2 Storage Charge",
+    decompressor: str = "INDWE C&I H2 Storage Discharge",
+    h2_store: str = "INDWE C&I H2 Storage-H2 Storage",
+    h2_demand: str = "INDWE C&I H2 Load"
+) -> dict:
+    
+    # 1. Annualised capex + opex
+    capex_elec = n.links.at[electrolyser, "p_nom_opt"] * n.links.at[electrolyser, "capital_cost"]
+    capex_comp = n.links.at[compressor, "p_nom_opt"] * n.links.at[compressor, "capital_cost"]
+    capex_decomp = n.links.at[decompressor, "p_nom_opt"] * n.links.at[decompressor, "capital_cost"]
+    capex_store = n.stores.at[h2_store, "e_nom_opt"] * n.stores.at[h2_store, "capital_cost"]
+    
+    total_capex = capex_elec + capex_comp + capex_decomp + capex_store
+
+    # 2. Variable opex and marginal costs
+    var_elec = (n.links_t.p0[electrolyser]).sum() * n.links.at[electrolyser, "marginal_cost"]
+    var_comp = (n.links_t.p0[compressor]).sum() * n.links.at[compressor, "marginal_cost"]
+    var_decomp = (n.links_t.p0[decompressor]).sum() * n.links.at[decompressor, "marginal_cost"]
+    
+    total_var_opex = var_elec + var_comp + var_decomp
+
+    # 3. Electricity costs (using marginal price of the electricity bus)
+    # Identify the electricity bus the electrolyser draws power from
+    elec_bus = n.links.at[electrolyser, "bus0"]
+    
+    # Electricity cost = sum(power_intake * marginal_price * snapshot_weighting)
+    p_in_elec = n.links_t.p0[electrolyser]
+    elec_prices = n.buses_t.marginal_price[elec_bus].clip(lower=0)
+    # elec_prices = n.buses_t.marginal_price[elec_bus]
+    total_elec_cost = (p_in_elec * elec_prices).sum()
+
+    # 4. Total Hydrogen demand
+    total_h2_consumed_mwh = (n.loads_t.p[h2_demand]).sum()
+
+    # Calculate LCOH (USD / MWh_H2)
+    total_system_cost = total_capex + total_var_opex + total_elec_cost
+    lcoh_usd_mwh = total_system_cost / total_h2_consumed_mwh
+    
+    # Convert to USD / kg (Assuming LHV of H2 is ~33.33 kWh/kg = 0.03333 MWh/kg)
+    lcoh_usd_kg = lcoh_usd_mwh * 0.03333
+
+    return {
+        "LCOH (USD/MWh)": lcoh_usd_mwh,
+        "LCOH (USD/kg)": lcoh_usd_kg,
+        "Breakdown (USD Total)": {
+            "Total CAPEX": total_capex,
+            "Total Component OPEX": total_var_opex,
+            "Total Electricity Cost": total_elec_cost
+        },
+        "Total H2 Consumed (MWh)": total_h2_consumed_mwh
+    }
