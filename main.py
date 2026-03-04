@@ -64,6 +64,17 @@ def run_scenarios(configs):
         print(f"Running: {run['name']}")
         ci_identifier = configs["global_vars"]["ci_label"]
         N_BROWNFIELD = RunBrownfieldSimulation(run, configs, env=env)
+        RES_TARGET = 43
+        print(f"Computing annual matching scenario (RES Target: {int(RES_TARGET)}%)...")
+        N_BROWNFIELD_original = helpers.load_brownfield_network(run, configs)
+        RunRES100(
+            N_BROWNFIELD_original,
+            ci_identifier=ci_identifier,
+            run=run,
+            res_target=RES_TARGET,
+            configs=configs,
+            env=env,
+        )
         RES_TARGET = 100
         print(f"Computing annual matching scenario (RES Target: {int(RES_TARGET)}%)...")
         N_BROWNFIELD_original = helpers.load_brownfield_network(run, configs)
