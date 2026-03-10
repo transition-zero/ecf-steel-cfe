@@ -185,6 +185,27 @@ def RunRES100(
             .sum()
         )
 
+        CI_Electrolyser_Demand_hourly = (
+            N_RES_100.model.variables['Link-p'].sel(
+            Link=[i for i in N_RES_100.links.index if ci_identifier in i and 'Electrolyser' in i and bus in i]
+            )
+            .sum(dims='Link')
+        )
+
+        CI_StorageCharge = (
+            N_RES_100.model.variables['Link-p'].sel(
+                Link=[i for i in N_RES_100.links.index if ci_identifier in i and 'Charge' in i and bus in i and 'H2' not in i]
+            )
+            .sum(dims='Link')
+        )
+
+        CI_StorageDischarge = (
+            N_RES_100.model.variables['Link-p'].sel(
+                Link=[i for i in N_RES_100.links.index if ci_identifier in i and 'Discharge' in i and bus in i and 'H2' not in i]
+            )
+            .sum(dims='Link')
+        )
+
         CI_H2_Demand = (
             N_RES_100.loads_t.p_set
             .filter(regex=bus)
@@ -218,6 +239,11 @@ def RunRES100(
             .sum()
         )
 
+        CI_PPA_hourly = (
+            N_RES_100.model.variables["Generator-p"]
+            .sel(Generator=ci_ppa_generators)
+        )
+
         # get clean carriers in the regional grid
         clean_carriers = [
             i
@@ -235,9 +261,10 @@ def RunRES100(
         ]
 
         # Constraint 1: Annual matching
+        # Note that the electrolyser must have 100% annual matching at all times
         # ---------------------------------------------------------------
         N_RES_100.model.add_constraints(
-            CI_PPA - ((res_target / 100) * CI_Electrolyser_Demand.sum()) 
+            CI_PPA - (1 * CI_Electrolyser_Demand.sum()) 
             >= (res_target / 100) * (CI_Demand.sum()),
             name=f"{res_target}_RES_constraint_{bus}",
         )
@@ -248,6 +275,13 @@ def RunRES100(
             CI_GridExport.sum() - (CI_Electrolyser_Demand.sum() * configs["global_vars"]["maximum_excess_export_res100"])
             <= (CI_Demand) * configs["global_vars"]["maximum_excess_export_res100"],
         )
+
+        # Constraint 3: Green H2 electrolyser demand must be met with clean electricity at all times
+        # ---------------------------------------------------------------
+        # N_RES_100.model.add_constraints(
+        #     CI_PPA_hourly - CI_GridExport >= (CI_StorageCharge - CI_StorageDischarge) + CI_Electrolyser_Demand_hourly,
+        #     name=f"cfe-constraint-green-h2-{bus}",
+        # )
 
         # Apply all the original brownfield constraints
         # ---------------------------------------------------------------
