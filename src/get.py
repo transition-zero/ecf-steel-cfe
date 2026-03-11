@@ -346,40 +346,47 @@ def get_ci_carriers(n: pypsa.Network) -> pd.DataFrame:
 
 def calculate_lcoh(
     n: pypsa.Network,
-    electrolyser: str = "INDWE C&I H2 Electrolyser",
-    compressor: str = "INDWE C&I H2 Storage Charge",
-    decompressor: str = "INDWE C&I H2 Storage Discharge",
-    h2_store: str = "INDWE C&I H2 Storage-H2 Storage",
-    h2_demand: str = "INDWE C&I H2 Load"
+    electrolyser: str = "C&I H2 Electrolyser",
+    compressor: str = "C&I H2 Storage Charge",
+    decompressor: str = "C&I H2 Storage Discharge",
+    h2_store: str = "C&I H2 Storage-H2 Storage",
+    h2_demand: str = "C&I H2 Load"
 ) -> dict:
     
     # 1. Annualised capex + opex
-    capex_elec = n.links.at[electrolyser, "p_nom_opt"] * n.links.at[electrolyser, "capital_cost"]
-    capex_comp = n.links.at[compressor, "p_nom_opt"] * n.links.at[compressor, "capital_cost"]
-    capex_decomp = n.links.at[decompressor, "p_nom_opt"] * n.links.at[decompressor, "capital_cost"]
-    capex_store = n.stores.at[h2_store, "e_nom_opt"] * n.stores.at[h2_store, "capital_cost"]
-    
+    # Find the actual names by substring match
+    elec_link = [k for k in n.links.index if electrolyser in k][0]
+    comp_link = [k for k in n.links.index if compressor in k][0]
+    decomp_link = [k for k in n.links.index if decompressor in k][0]
+    store_name = [k for k in n.stores.index if h2_store in k][0]
+
+    capex_elec = n.links.at[elec_link, "p_nom_opt"] * n.links.at[elec_link, "capital_cost"]
+    capex_comp = n.links.at[comp_link, "p_nom_opt"] * n.links.at[comp_link, "capital_cost"]
+    capex_decomp = n.links.at[decomp_link, "p_nom_opt"] * n.links.at[decomp_link, "capital_cost"]
+    capex_store = n.stores.at[store_name, "e_nom_opt"] * n.stores.at[store_name, "capital_cost"]
+
     total_capex = capex_elec + capex_comp + capex_decomp + capex_store
 
     # 2. Variable opex and marginal costs
-    var_elec = (n.links_t.p0[electrolyser]).sum() * n.links.at[electrolyser, "marginal_cost"]
-    var_comp = (n.links_t.p0[compressor]).sum() * n.links.at[compressor, "marginal_cost"]
-    var_decomp = (n.links_t.p0[decompressor]).sum() * n.links.at[decompressor, "marginal_cost"]
-    
+    var_elec = (n.links_t.p0[elec_link]).sum() * n.links.at[elec_link, "marginal_cost"]
+    var_comp = (n.links_t.p0[comp_link]).sum() * n.links.at[comp_link, "marginal_cost"]
+    var_decomp = (n.links_t.p0[decomp_link]).sum() * n.links.at[decomp_link, "marginal_cost"]
+
     total_var_opex = var_elec + var_comp + var_decomp
 
     # 3. Electricity costs (using marginal price of the electricity bus)
     # Identify the electricity bus the electrolyser draws power from
-    elec_bus = n.links.at[electrolyser, "bus0"]
-    
+    elec_bus = n.links.at[elec_link, "bus0"]
+
     # Electricity cost = sum(power_intake * marginal_price * snapshot_weighting)
-    p_in_elec = n.links_t.p0[electrolyser]
+    p_in_elec = n.links_t.p0[elec_link]
     elec_prices = n.buses_t.marginal_price[elec_bus].clip(lower=0)
-    # elec_prices = n.buses_t.marginal_price[elec_bus]
     total_elec_cost = (p_in_elec * elec_prices).sum()
 
     # 4. Total Hydrogen demand
-    total_h2_consumed_mwh = (n.loads_t.p[h2_demand]).sum()
+    # Find the actual H2 demand load by substring match
+    h2_demand_col = [col for col in n.loads_t.p.columns if h2_demand in col][0]
+    total_h2_consumed_mwh = (n.loads_t.p[h2_demand_col]).sum()
     total_h2_consumed_kg = total_h2_consumed_mwh * 1000 / 33.33
 
     # Calculate LCOH (USD / MWh_H2)

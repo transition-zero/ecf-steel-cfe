@@ -83,11 +83,11 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
                                           path_to_run_dir=path_to_run_dir,
                                           work_sans_font=work_sans_font)
     
-    # plot_ci_emission_rate_by_scenario(solved_networks=solved_networks,
-    #                                   path_to_run_dir=path_to_run_dir,
-    #                                   nodes_with_ci_loads=nodes_with_ci_loads,
-    #                                   run=run,
-    #                                   work_sans_font=work_sans_font)
+    plot_ci_emission_rate_by_scenario(solved_networks=solved_networks,
+                                      path_to_run_dir=path_to_run_dir,
+                                      nodes_with_ci_loads=nodes_with_ci_loads,
+                                      run=run,
+                                      work_sans_font=work_sans_font)
 
     plot_total_system_costs_by_scenario(solved_networks=solved_networks,
                                         path_to_run_dir=path_to_run_dir,
@@ -109,9 +109,9 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     #                                             path_to_run_dir=path_to_run_dir,
     #                                             work_sans_font=work_sans_font)
     
-    # plot_ci_curtailment(solved_networks=solved_networks,
-    #                     path_to_run_dir=path_to_run_dir,
-    #                     work_sans_font=work_sans_font)
+    plot_ci_curtailment(solved_networks=solved_networks,
+                        path_to_run_dir=path_to_run_dir,
+                        work_sans_font=work_sans_font)
 
     # plot_cfe_score_heatmaps(solved_networks=solved_networks,
     #                         path_to_run_dir=path_to_run_dir,
@@ -783,16 +783,22 @@ def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, nodes_wi
 
     print('Creating C&I emission rate by scenario plot')
 
+    solved_networks_no_bf = {k: v for k, v in solved_networks.items() if k != 'n_bf'}
+
     ci_emissions = (
         pd
         .DataFrame({
-            'name' : [k for k in solved_networks.keys()],
-            'load' : [solved_networks[k].loads_t.p_set.filter(regex='C&I').sum().sum() for k in solved_networks.keys()],
+            'name' : [k for k in solved_networks_no_bf.keys()],
+            'load' : [solved_networks_no_bf[k].loads_t.p_set.filter(regex='C&I').sum().sum() for k in solved_networks_no_bf.keys()],
             'emissions' : [
                 np.sum(
-                    solved_networks[k].links_t.p0.filter(regex='C&I').filter(regex='Import').values.flatten() @ np.array(cget.get_ci_parent_emissions(solved_networks[k], nodes_with_ci_loads))
+                    solved_networks_no_bf[k]
+                    .links_t
+                    .p0.filter(regex='C&I')
+                    .filter(regex='Import')
+                    .values.flatten() @ np.array(cget.get_ci_parent_emissions(solved_networks_no_bf[k], nodes_with_ci_loads))
                 ) 
-                for k in solved_networks.keys()
+                for k in solved_networks_no_bf.keys()
             ],
             # 'emissions' : [
             #     np.sum(
@@ -813,7 +819,7 @@ def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, nodes_wi
 
     res = (
         ci_emissions
-        .loc[ci_emissions['Scenario'] == '100% RES']
+        .loc[ci_emissions['Scenario'].str.contains('RES')]
         .pivot_table(index='Scenario', values='emission_rate')
         .reset_index()
     )
@@ -2005,17 +2011,19 @@ def plot_ci_curtailment(solved_networks, path_to_run_dir, work_sans_font):
 
     fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
     colors = cplt.tech_color_palette()
-    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_am_RES100_2030'])
+
+    solved_networks_no_bf = {k: v for k, v in solved_networks.items() if k != 'n_bf'}
 
     curtailment_summary = (
         pd.concat(
             [
                 cget.get_ci_cost_summary(
-                    solved_networks[k]
+                    solved_networks_no_bf[k]
                     )
                 .assign(name=k)
                 .assign(ci_load = n.loads_t.p.filter(regex='C&I').sum().sum())
-                for k, n in solved_networks.items()
+                for k, n in solved_networks_no_bf.items()
             ]
         )
         .pipe(
@@ -2042,7 +2050,7 @@ def plot_ci_curtailment(solved_networks, path_to_run_dir, work_sans_font):
 
     res = (
         curtailment_summary
-        .loc[curtailment_summary['Scenario'] == '100% RES']
+        .loc[curtailment_summary['Scenario'].str.contains('RES')]
         .pivot_table(columns='carrier', index='Scenario', values='curtailment_perc')
         .multiply(100)
     )
