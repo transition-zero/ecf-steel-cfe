@@ -342,6 +342,41 @@ def get_ci_procurement(n, ci_identifier):
         ),
     })
 
+def get_ci_procurement_h2(n, ci_identifier):
+    '''Returns the fractional procurement of C&I assets, including electrolyser demand
+    '''
+    ci_load = n.loads_t.p.filter(regex=ci_identifier).filter(regex='^(?!.*H2)').sum().sum()
+    return pd.DataFrame({
+        # imports
+        'Grid supply' : (
+            n.links_t.p0.filter(regex=ci_identifier).filter(regex='Import').sum().sum(),# / ci_load,
+        ),
+        # exports
+        'Excess' : (
+            n.links_t.p1.filter(regex=ci_identifier).filter(regex='Export').sum().sum(),# / ci_load,
+        ),
+        # ppa
+        'C&I PPA' : (
+            n.generators_t.p[
+                n.generators.loc[
+                    n.generators.index.str.contains(ci_identifier),
+                    ].index
+                ]
+            .sum(axis=1)
+            .sum()
+            - n.links_t.p0.filter(regex=ci_identifier).filter(regex='Storage Charge').sum().sum()
+            + n.links_t.p0.filter(regex=ci_identifier).filter(regex='Storage Discharge').sum().sum()
+            #/ ci_load
+        ),
+        'C&I Load' : (
+            ci_load
+        ),
+        # electrolyser demand
+        'C&I Electrolyser Demand' : (
+            n.links_t.p0.filter(regex=ci_identifier).filter(regex='Electrolyser').sum().sum()
+        )
+    })
+
 
 def split_scenario_col(df : pd.DataFrame, col_name: str):
     '''Splits the scenario column into two columns

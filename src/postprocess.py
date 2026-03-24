@@ -129,6 +129,10 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     plot_lcoe(solved_networks=solved_networks,
              path_to_run_dir=path_to_run_dir,
              work_sans_font=work_sans_font_medium)
+    
+    plot_ci_energy_balance_h2(solved_networks=solved_networks,
+                              path_to_run_dir=path_to_run_dir,
+                              work_sans_font=work_sans_font)
 
 def aggregate_capacity(
         scenarios,
@@ -1304,6 +1308,53 @@ def plot_ci_energy_balance(solved_networks, path_to_run_dir, work_sans_font):
             path_to_run_dir, 'results/05_ci_energy_balance.svg'
         ),
         bbox_inches='tight'
+    )
+
+def plot_ci_energy_balance_h2(solved_networks, path_to_run_dir, work_sans_font):
+    """
+    Plot C&I energy balance by scenario.
+    """
+    # ------------------------------------------------------------------
+    # C&I ENERGY BALANCE
+    print('Creating C&I energy balance plot with H2 components')
+
+    fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[2,10])
+
+    ci_procurement = (
+        pd.concat(
+            [cget.get_ci_procurement_h2(n, 'C&I').assign(name=k) for k, n in solved_networks.items()]
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name',
+        )
+        .drop('name', axis=1)
+    )
+
+    # plot 100% RES for reference
+    res = (
+        ci_procurement
+        .loc[ci_procurement['Scenario'].str.contains('RES')]
+        .drop(['Scenario','CFE Score'], axis=1)
+        .mul(1e-6)
+        .rename(index={0:'100% RES'})
+    )
+
+    cfe = (
+        ci_procurement
+        .query("Scenario.str.contains('CFE')")
+        .sort_values('CFE Score')
+        .drop(['Scenario'], axis=1)
+        .set_index('CFE Score')
+        .mul(1e-6)
+    )
+
+    # save df
+    (pd.concat([res, cfe], axis=0)).to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/17_ci_energy_balance_h2.csv'
+        ),
+        index=True
     )
 
 def plot_ci_unit_cost_of_electricity(solved_networks, path_to_run_dir, work_sans_font):
