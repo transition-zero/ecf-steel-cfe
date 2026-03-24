@@ -269,6 +269,31 @@ def get_total_ci_procurement_cost(n : pypsa.Network) -> pd.DataFrame:
         .rename(columns={'level_0' : 'component','level_2' : 'carrier', 0: 'annual_system_cost [M$]'})
     )
 
+def get_lcoe(n : pypsa.Network) -> pd.DataFrame:
+    '''Returns the levelised cost of electricity (LCOE) in $/MWh for each C&I procured generator and storage unit
+    '''
+    stats = n.statistics(groupby=["bus","carrier"])
+    supply = stats['Supply'].fillna(0).reset_index()
+    electricity_delivered = supply.query(
+        "level_0.str.contains('Generator') and level_1.str.contains('C&I')"
+    )['Supply'].sum()
+
+    capex = stats['Capital Expenditure'].fillna(0).div(electricity_delivered)
+    opex = stats['Operational Expenditure'].fillna(0).div(electricity_delivered)
+    total_costs = (capex + opex).round(2).reset_index()
+    total_costs = (
+        total_costs
+        .query(
+            "level_1.str.contains('C&I') "
+            "and not level_0.str.contains('Link') "
+            "and not level_1.str.contains('H2') "
+            "and not level_2.str.contains('Transmission')"
+        )
+        .drop(columns=['level_1', 'level_0'])
+        .rename(columns={'level_2': 'carrier', 0: 'lcoe_usd_per_mwh'})
+        .query("lcoe_usd_per_mwh > 0")
+    )
+    return total_costs
 
 def get_total_annual_system_cost(n : pypsa.Network) -> pd.DataFrame:
     '''Returns the total annual system cost in M$ for each component and carrier
