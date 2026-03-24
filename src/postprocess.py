@@ -125,6 +125,10 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     plot_lcoh(solved_networks=solved_networks,
               path_to_run_dir=path_to_run_dir,
               work_sans_font=work_sans_font_medium)
+    
+    plot_lcoe(solved_networks=solved_networks,
+             path_to_run_dir=path_to_run_dir,
+             work_sans_font=work_sans_font_medium)
 
 def aggregate_capacity(
         scenarios,
@@ -2302,6 +2306,108 @@ def plot_lcoh(solved_networks, path_to_run_dir, work_sans_font):
     fig.savefig(
         os.path.join(
             path_to_run_dir, 'results/15_lcoh.svg'
+        ),
+        bbox_inches='tight'
+    )
+
+def plot_lcoe(solved_networks, path_to_run_dir, work_sans_font):
+    """
+    Plot LCOE for each scenario.
+    """
+    # ------------------------------------------------------------------
+    # LCOE
+    print('Creating LCOE plot')
+
+    fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[2,10], figsize=(6,4))
+
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_am_RES100_2030'])
+
+    filtered_keys = [k for k in solved_networks.keys() if 'n_bf' not in k]
+
+    lcoe_table = (
+        pd.concat(
+            [
+                cget.get_ci_lcoe(solved_networks[k])
+                .assign(name=k)
+                for k in filtered_keys
+            ]
+        )
+        .pipe(
+            cget.split_scenario_col,
+            'name',
+        )
+        .drop('name', axis=1)
+    )
+
+    res_lcoe = (
+        lcoe_table
+        .loc[(lcoe_table['Scenario'] == '100% RES') | (lcoe_table['Scenario'] == '43% RES')]
+        .drop(['CFE Score'], axis=1)
+        .query(" ~carrier.isin(['Transmission','AC']) ")
+        .query("carrier in @ci_carriers")
+        .pivot_table(index='Scenario', columns='carrier', values='lcoe_usd_per_mwh')
+        # .rename(index={'capacity':'100% RES'})
+    )
+
+    cfe_lcoe = (
+        lcoe_table
+        .query("Scenario.str.contains('CFE')")
+        .sort_values('CFE Score')
+        .query(" ~carrier.isin(['Transmission','AC']) ")
+        .query("carrier in @ci_carriers")
+        .pivot_table(index='CFE Score', columns='carrier', values='lcoe_usd_per_mwh')
+    )
+
+    # save df
+    (pd.concat([res_lcoe, cfe_lcoe], axis=0)).to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/16_lcoe.csv'
+        ),
+        index=True
+    )
+
+    colors = cplt.tech_color_palette()
+
+    res_lcoe.plot(kind='bar', stacked=True, ax=ax0, legend=False, color=[colors.get(x, '#333333') for x in res_lcoe.columns])
+    cfe_lcoe.plot(kind='bar', stacked=True, ax=ax1, legend=True, color=[colors.get(x, '#333333') for x in cfe_lcoe.columns])
+
+    ax0.set_ylabel('LCOE [USD/MWh]', fontproperties=work_sans_font)
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+
+    for ax in [ax0, ax1]:
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(work_sans_font)
+        sns.despine(ax=ax, left=False)
+
+    # Remove legend title and box, make sure labels are displayed in the same order as in the plot
+    handles, labels = ax1.get_legend_handles_labels()
+    order = [cfe_lcoe.columns.tolist().index(label) for label in labels if label in cfe_lcoe.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+
+    legend = ax1.legend(sorted_handles, sorted_labels, bbox_to_anchor=(1, 0.5), ncol=1)
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
+
+    # Adjust horizontal space between ax0 and ax1
+    fig.subplots_adjust(wspace=0.1)
+
+    # save
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/16_lcoe.png'
+        ),
+        bbox_inches='tight'
+    )
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/16_lcoe.svg'
         ),
         bbox_inches='tight'
     )

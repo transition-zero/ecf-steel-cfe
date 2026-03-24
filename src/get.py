@@ -273,7 +273,7 @@ def get_total_ci_procurement_cost(n: pypsa.Network) -> pd.DataFrame:
     )
     return filtered if not filtered.empty else pd.DataFrame(columns=['component', 'carrier', 'annual_system_cost [M$]'])
 
-def get_lcoe(n : pypsa.Network) -> pd.DataFrame:
+def get_ci_lcoe(n : pypsa.Network) -> pd.DataFrame:
     '''Returns the levelised cost of electricity (LCOE) in $/MWh for each C&I procured generator and storage unit
     '''
     stats = n.statistics(groupby=["bus","carrier"])
@@ -293,8 +293,8 @@ def get_lcoe(n : pypsa.Network) -> pd.DataFrame:
             "and not level_1.str.contains('H2') "
             "and not level_2.str.contains('Transmission')"
         )
-        .drop(columns=['level_1', 'level_0'])
-        .rename(columns={'level_2': 'carrier', 0: 'lcoe_usd_per_mwh'})
+        .drop(columns=['level_1'])
+        .rename(columns={'level_0': 'component', 'level_2': 'carrier', 0: 'lcoe_usd_per_mwh'})
         .query("lcoe_usd_per_mwh > 0")
     )
     return total_costs
