@@ -2196,28 +2196,33 @@ def plot_lcoh(solved_networks, path_to_run_dir, work_sans_font):
     fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[2,10], figsize=(6,4))
 
     filtered_keys = [k for k in solved_networks.keys() if 'n_bf' not in k]
+    lcoh_results = {
+        k: cget.calculate_lcoh(solved_networks[k])
+        for k in filtered_keys
+    }
+
     lcoh_table = (
         pd
         .DataFrame({
             'name' : filtered_keys,
             # 'lcoh' : [
-            #     cget.calculate_lcoh(solved_networks[k])["LCOH (USD/kg)"]
+            #     lcoh_results[k]["LCOH (USD/kg)"]
             #     for k in filtered_keys
             # ],
             'electrolyser_portion' : [
-                cget.calculate_lcoh(solved_networks[k])["Electrolyser cost (USD/kg)"]
+                lcoh_results[k]["Electrolyser cost (USD/kg)"]
                 for k in filtered_keys
             ],
             'compressor_portion' : [
-                cget.calculate_lcoh(solved_networks[k])["Compressor cost (USD/kg)"]
+                lcoh_results[k]["Compressor cost (USD/kg)"]
                 for k in filtered_keys
             ],
             'store_portion' : [
-                cget.calculate_lcoh(solved_networks[k])["Store cost (USD/kg)"]
+                lcoh_results[k]["Store cost (USD/kg)"]
                 for k in filtered_keys
             ],
             'electricity_portion' : [
-                cget.calculate_lcoh(solved_networks[k])["Electricity cost (USD/kg)"]
+                lcoh_results[k]["Electricity cost (USD/kg)"]
                 for k in filtered_keys
             ],
         })
