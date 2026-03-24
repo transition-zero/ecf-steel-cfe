@@ -33,7 +33,7 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     )
 
     # load list of C&I carriers to be plot
-    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_am_RES100_2030'])
 
     # Add Work Sans font to matplotlib
     work_sans_path_light = './assets/WorkSans-Light.ttf'
@@ -82,11 +82,11 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
                                           path_to_run_dir=path_to_run_dir,
                                           work_sans_font=work_sans_font)
     
-    # plot_ci_emission_rate_by_scenario(solved_networks=solved_networks,
-    #                                   path_to_run_dir=path_to_run_dir,
-    #                                   nodes_with_ci_loads=nodes_with_ci_loads,
-    #                                   run=run,
-    #                                   work_sans_font=work_sans_font)
+    plot_ci_emission_rate_by_scenario(solved_networks=solved_networks,
+                                      path_to_run_dir=path_to_run_dir,
+                                      nodes_with_ci_loads=nodes_with_ci_loads,
+                                      run=run,
+                                      work_sans_font=work_sans_font)
 
     plot_total_system_costs_by_scenario(solved_networks=solved_networks,
                                         path_to_run_dir=path_to_run_dir,
@@ -108,9 +108,9 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     #                                             path_to_run_dir=path_to_run_dir,
     #                                             work_sans_font=work_sans_font)
     
-    # plot_ci_curtailment(solved_networks=solved_networks,
-    #                     path_to_run_dir=path_to_run_dir,
-    #                     work_sans_font=work_sans_font)
+    plot_ci_curtailment(solved_networks=solved_networks,
+                        path_to_run_dir=path_to_run_dir,
+                        work_sans_font=work_sans_font)
 
     # plot_cfe_score_heatmaps(solved_networks=solved_networks,
     #                         path_to_run_dir=path_to_run_dir,
@@ -122,6 +122,9 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     #                                 run=run,
     #                                 work_sans_font_medium=work_sans_font_medium)
 
+    plot_lcoh(solved_networks=solved_networks,
+              path_to_run_dir=path_to_run_dir,
+              work_sans_font=work_sans_font_medium)
 
 def aggregate_capacity(
         scenarios,
@@ -165,7 +168,7 @@ def plot_ci_portfolio_capacity(solved_networks, path_to_run_dir, work_sans_font)
     """
     print('Creating C&I portfolio capacity plot')
 
-    fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[1,10], figsize=(6,4))
+    fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[2,10], figsize=(6,4))
 
     expanded_capacity = (
         pd.concat(
@@ -185,16 +188,16 @@ def plot_ci_portfolio_capacity(solved_networks, path_to_run_dir, work_sans_font)
         .drop('name', axis=1)
         .query("capacity != 0")
     )
-
+    
     # pull out relevant data
     res = (
         expanded_capacity
-        .loc[expanded_capacity['Scenario'] == '100% RES']
-        .drop(['Scenario','CFE Score'], axis=1)
+        .loc[(expanded_capacity['Scenario'] == '100% RES') | (expanded_capacity['Scenario'] == '43% RES')]
+        .drop(['CFE Score'], axis=1)
         .query(" ~carrier.isin(['Transmission','AC']) ")
-        .pivot_table(columns='carrier', values='capacity')
+        .pivot_table(index='Scenario', columns='carrier', values='capacity')
         .div(1e3)
-        .rename(index={'capacity':'100% RES'})
+        # .rename(index={'capacity':'100% RES'})
     )
     cfe = (
         expanded_capacity
@@ -299,7 +302,8 @@ def plot_ci_and_parent_generation(solved_networks, path_to_run_dir, nodes_with_c
     res = (
         generation_mix
         .loc[
-            (generation_mix['Scenario'] == '100% RES')
+            (generation_mix['Scenario'].str.contains('RES'))
+            # ((generation_mix['Scenario'] == '100% RES') | (generation_mix['Scenario'] == '43% RES'))
             &
             (generation_mix['level_1'].str.contains(nodes_with_ci_loads))
         ]
@@ -520,14 +524,24 @@ def plot_ci_portfolio_procurement_cost(solved_networks, path_to_run_dir, work_sa
     )
 
     # pull out relevant data
+    # res_ci_costs = (
+    #     ci_procurement_cost
+    #     .loc[ci_procurement_cost['Scenario'] == '100% RES']
+    #     .drop(['Scenario','CFE Score'], axis=1)
+    #     .query(" ~carrier.isin(['Transmission','AC']) ")
+    #     .query("carrier in @ci_carriers")
+    #     .pivot_table(columns='carrier', values='annual_system_cost [M$]')
+    #     .rename(index={'annual_system_cost [M$]':'100% RES'})
+    # )
+
     res_ci_costs = (
         ci_procurement_cost
-        .loc[ci_procurement_cost['Scenario'] == '100% RES']
-        .drop(['Scenario','CFE Score'], axis=1)
+        .loc[(ci_procurement_cost['Scenario'] == '100% RES') | (ci_procurement_cost['Scenario'] == '43% RES')]
+        .drop(['CFE Score'], axis=1)
         .query(" ~carrier.isin(['Transmission','AC']) ")
         .query("carrier in @ci_carriers")
-        .pivot_table(columns='carrier', values='annual_system_cost [M$]')
-        .rename(index={'annual_system_cost [M$]':'100% RES'})
+        .pivot_table(index='Scenario', columns='carrier', values='annual_system_cost [M$]')
+        # .rename(index={'capacity':'100% RES'})
     )
 
     cfe_ci_costs = (
@@ -768,16 +782,22 @@ def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, nodes_wi
 
     print('Creating C&I emission rate by scenario plot')
 
+    solved_networks_no_bf = {k: v for k, v in solved_networks.items() if k != 'n_bf'}
+
     ci_emissions = (
         pd
         .DataFrame({
-            'name' : [k for k in solved_networks.keys()],
-            'load' : [solved_networks[k].loads_t.p_set.filter(regex='C&I').sum().sum() for k in solved_networks.keys()],
+            'name' : [k for k in solved_networks_no_bf.keys()],
+            'load' : [solved_networks_no_bf[k].loads_t.p_set.filter(regex='C&I').sum().sum() for k in solved_networks_no_bf.keys()],
             'emissions' : [
                 np.sum(
-                    solved_networks[k].links_t.p0.filter(regex='C&I').filter(regex='Import').values.flatten() @ np.array(cget.get_ci_parent_emissions(solved_networks[k], nodes_with_ci_loads))
+                    solved_networks_no_bf[k]
+                    .links_t
+                    .p0.filter(regex='C&I')
+                    .filter(regex='Import')
+                    .values.flatten() @ np.array(cget.get_ci_parent_emissions(solved_networks_no_bf[k], nodes_with_ci_loads))
                 ) 
-                for k in solved_networks.keys()
+                for k in solved_networks_no_bf.keys()
             ],
             # 'emissions' : [
             #     np.sum(
@@ -798,7 +818,7 @@ def plot_ci_emission_rate_by_scenario(solved_networks, path_to_run_dir, nodes_wi
 
     res = (
         ci_emissions
-        .loc[ci_emissions['Scenario'] == '100% RES']
+        .loc[ci_emissions['Scenario'].str.contains('RES')]
         .pivot_table(index='Scenario', values='emission_rate')
         .reset_index()
     )
@@ -1990,17 +2010,19 @@ def plot_ci_curtailment(solved_networks, path_to_run_dir, work_sans_font):
 
     fig, ax0, ax1 = cplt.bar_plot_2row(figsize=(6,4), width_ratios=[1,10])
     colors = cplt.tech_color_palette()
-    ci_carriers = cget.get_ci_carriers(solved_networks['n_bf'])
+    ci_carriers = cget.get_ci_carriers(solved_networks['n_am_RES100_2030'])
+
+    solved_networks_no_bf = {k: v for k, v in solved_networks.items() if k != 'n_bf'}
 
     curtailment_summary = (
         pd.concat(
             [
                 cget.get_ci_cost_summary(
-                    solved_networks[k]
+                    solved_networks_no_bf[k]
                     )
                 .assign(name=k)
                 .assign(ci_load = n.loads_t.p.filter(regex='C&I').sum().sum())
-                for k, n in solved_networks.items()
+                for k, n in solved_networks_no_bf.items()
             ]
         )
         .pipe(
@@ -2027,7 +2049,7 @@ def plot_ci_curtailment(solved_networks, path_to_run_dir, work_sans_font):
 
     res = (
         curtailment_summary
-        .loc[curtailment_summary['Scenario'] == '100% RES']
+        .loc[curtailment_summary['Scenario'].str.contains('RES')]
         .pivot_table(columns='carrier', index='Scenario', values='curtailment_perc')
         .multiply(100)
     )
@@ -2156,3 +2178,130 @@ def plot_monthly_cfe_score_heatmaps(solved_networks, path_to_run_dir, run, work_
             ),
             bbox_inches='tight'
         )
+
+def plot_lcoh(solved_networks, path_to_run_dir, work_sans_font):
+    """
+    Plot LCOH for each scenario.
+    """
+    # ------------------------------------------------------------------
+    # LCOH
+    print('Creating LCOH plot')
+
+    # for k in solved_networks.keys():
+    #     if not 'n_bf' in k:
+    #         lcoh_usd_mwh = cget.calculate_lcoh(solved_networks[k])["LCOH (USD/MWh)"]
+    #         lcoh_usd_kg = cget.calculate_lcoh(solved_networks[k])["LCOH (USD/kg)"]
+    
+    fig, ax0, ax1 = cplt.bar_plot_2row(width_ratios=[2,10], figsize=(6,4))
+
+    filtered_keys = [k for k in solved_networks.keys() if 'n_bf' not in k]
+    lcoh_results = {
+        k: cget.calculate_lcoh(solved_networks[k])
+        for k in filtered_keys
+    }
+
+    lcoh_table = (
+        pd
+        .DataFrame({
+            'name' : filtered_keys,
+            # 'lcoh' : [
+            #     lcoh_results[k]["LCOH (USD/kg)"]
+            #     for k in filtered_keys
+            # ],
+            'electrolyser_portion' : [
+                lcoh_results[k]["Electrolyser cost (USD/kg)"]
+                for k in filtered_keys
+            ],
+            'compressor_portion' : [
+                lcoh_results[k]["Compressor cost (USD/kg)"]
+                for k in filtered_keys
+            ],
+            'store_portion' : [
+                lcoh_results[k]["Store cost (USD/kg)"]
+                for k in filtered_keys
+            ],
+            'electricity_portion' : [
+                lcoh_results[k]["Electricity cost (USD/kg)"]
+                for k in filtered_keys
+            ],
+        })
+        .pipe(
+            cget.split_scenario_col,
+            'name',
+        )
+        .sort_values('CFE Score')
+    )
+
+    # save df
+    (lcoh_table).to_csv(
+        os.path.join(
+            path_to_run_dir, 'results/15_lcoh.csv'
+        ),
+        index=True
+    )
+
+    # pull out relevant data
+    res = (
+        lcoh_table
+        .loc[(lcoh_table['Scenario'] == '100% RES') | (lcoh_table['Scenario'] == '43% RES')]
+        .drop(['CFE Score'], axis=1)
+        .set_index('Scenario')
+        # .pivot_table(index='Scenario', columns='carrier', values='capacity')
+        # .div(1e3)
+        # .rename(index={'capacity':'100% RES'})
+    )
+    cfe = (
+        lcoh_table
+        .query("Scenario.str.contains('CFE')")
+        .drop(['Scenario'], axis=1)
+        .sort_values('CFE Score')
+        .set_index('CFE Score')
+        # .pivot_table(index='CFE Score', columns='carrier', values='capacity')
+        # .div(1e3)
+    )
+
+    # colors = cplt.tech_color_palette()
+
+    res.plot(kind='bar', stacked=True, ax=ax0, legend=False)
+    cfe.plot(kind='bar', stacked=True, ax=ax1, legend=True)
+
+    ax0.set_ylabel('LCOH [USD/kg]', fontproperties=work_sans_font)
+    ax1.set_xlabel('CFE Score [%]', fontproperties=work_sans_font)
+
+    for ax in [ax0, ax1]:
+        ax.set_xticklabels(ax.get_xticklabels(), rotation=0, fontproperties=work_sans_font)
+        ax.yaxis.grid(True, linestyle=':', linewidth=0.5)
+        for label in ax.get_yticklabels():
+            label.set_fontproperties(work_sans_font)
+        sns.despine(ax=ax, left=False)
+
+    # Remove legend title and box, make sure labels are displayed in the same order as in the plot
+    handles, labels = ax1.get_legend_handles_labels()
+    order = [cfe.columns.tolist().index(label) for label in labels if label in cfe.columns]
+    sorted_handles_labels = sorted(zip(order, handles, labels), key=lambda x: -x[0])
+    sorted_handles, sorted_labels = zip(*[(h, l) for _, h, l in sorted_handles_labels])
+
+    legend = ax1.legend(sorted_handles, sorted_labels, bbox_to_anchor=(1, 0.5), ncol=1)
+    legend.set_title(None)
+    legend.get_frame().set_linewidth(0)
+
+    # Set font of the legend
+    for text in legend.get_texts():
+        text.set_fontproperties(work_sans_font)
+
+    # Adjust horizontal space between ax0 and ax1
+    fig.subplots_adjust(wspace=0.1)
+
+    # save
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/15_lcoh.png'
+        ),
+        bbox_inches='tight'
+    )
+    fig.savefig(
+        os.path.join(
+            path_to_run_dir, 'results/15_lcoh.svg'
+        ),
+        bbox_inches='tight'
+    )

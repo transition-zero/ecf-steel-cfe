@@ -318,7 +318,11 @@ def split_scenario_col(df : pd.DataFrame, col_name: str):
     '''Splits the scenario column into two columns
     '''
     df.loc[ df[col_name].str.contains('n_bf'), 'Scenario' ] = 'Reference'
-    df.loc[ df[col_name].str.contains('RES100'), 'Scenario' ] = '100% RES'
+    df.loc[df[col_name].str.contains(r'RES\d+'), 'Scenario'] = (
+        df.loc[df[col_name].str.contains(r'RES\d+'), col_name]
+        .str.extract(r'RES(\d+)')[0]
+        .astype(str) + '% RES'
+    )
     df.loc[ df[col_name].str.contains('n_hm'), 'Scenario' ] = df.query(f"{col_name}.str.contains('CFE')")[col_name].str.split('_', expand=True)[2].str.replace('CFE','CFE-')
     df.loc[ df.Scenario.str.contains('CFE'), 'CFE Score'] = df.loc[ df.Scenario.str.contains('CFE'), 'Scenario'].str.replace('CFE-','').astype(int)
     return df
@@ -328,6 +332,84 @@ def get_ci_carriers(n: pypsa.Network) -> pd.DataFrame:
     '''Returns the C&I carriers
     '''
     ci_carriers = list(n.generators[n.generators.index.str.contains('C&I')].carrier.unique()) + \
-              list(n.storage_units[n.storage_units.index.str.contains('C&I')].carrier.unique())
+              list(n.storage_units[n.storage_units.index.str.contains('C&I')].carrier.unique()) + \
+              list(n.links[n.links.index.str.contains('H2')].carrier.unique())
 
-    return (n.carriers.loc[ci_carriers, 'nice_name'])
+    # Only add store carriers if there are any stores in the network
+    if not n.stores.empty:
+        h2_stores = n.stores[n.stores.index.str.contains('H2')]
+        if not h2_stores.empty:
+            ci_carriers += list(h2_stores.carrier.unique())
+
+    # Filter out carriers that are not present in n.carriers.index to avoid KeyError
+    valid_ci_carriers = pd.Index(ci_carriers).intersection(n.carriers.index)
+    return n.carriers.loc[valid_ci_carriers, 'nice_name']
+
+
+def calculate_lcoh(
+    n: pypsa.Network,
+    electrolyser: str = "C&I H2 Electrolyser",
+    compressor: str = "C&I H2 Storage Charge",
+    decompressor: str = "C&I H2 Storage Discharge",
+    h2_store: str = "C&I H2 Storage-H2 Storage",
+    h2_demand: str = "C&I H2 Load"
+) -> dict:
+    
+    # 1. Annualised capex + opex
+    # Find the actual names by substring match
+    elec_link = [k for k in n.links.index if electrolyser in k][0]
+    comp_link = [k for k in n.links.index if compressor in k][0]
+    decomp_link = [k for k in n.links.index if decompressor in k][0]
+    store_name = [k for k in n.stores.index if h2_store in k][0]
+
+    capex_elec = n.links.at[elec_link, "p_nom_opt"] * n.links.at[elec_link, "capital_cost"]
+    capex_comp = n.links.at[comp_link, "p_nom_opt"] * n.links.at[comp_link, "capital_cost"]
+    capex_decomp = n.links.at[decomp_link, "p_nom_opt"] * n.links.at[decomp_link, "capital_cost"]
+    capex_store = n.stores.at[store_name, "e_nom_opt"] * n.stores.at[store_name, "capital_cost"]
+
+    total_capex = capex_elec + capex_comp + capex_decomp + capex_store
+
+    # 2. Variable opex and marginal costs
+    var_elec = (n.links_t.p0[elec_link]).sum() * n.links.at[elec_link, "marginal_cost"]
+    var_comp = (n.links_t.p0[comp_link]).sum() * n.links.at[comp_link, "marginal_cost"]
+    var_decomp = (n.links_t.p0[decomp_link]).sum() * n.links.at[decomp_link, "marginal_cost"]
+
+    total_var_opex = var_elec + var_comp + var_decomp
+
+    # 3. Electricity costs (using marginal price of the electricity bus)
+    # Identify the electricity bus the electrolyser draws power from
+    elec_bus = n.links.at[elec_link, "bus0"]
+
+    # Electricity cost = sum(power_intake * marginal_price * snapshot_weighting)
+    p_in_elec = n.links_t.p0[elec_link]
+    elec_prices = n.buses_t.marginal_price[elec_bus].clip(lower=0)
+    total_elec_cost = (p_in_elec * elec_prices).sum()
+
+    # 4. Total Hydrogen demand
+    # Find the actual H2 demand load by substring match
+    h2_demand_col = [col for col in n.loads_t.p.columns if h2_demand in col][0]
+    total_h2_consumed_mwh = (n.loads_t.p[h2_demand_col]).sum()
+    total_h2_consumed_kg = total_h2_consumed_mwh * 1000 / 33.33
+
+    # Calculate LCOH (USD / MWh_H2)
+    total_system_cost = total_capex + total_var_opex + total_elec_cost
+    lcoh_usd_mwh = total_system_cost / total_h2_consumed_mwh
+
+    # Calculate component costs in USD / MWh_H2
+    electrolyser_component = (capex_elec + var_elec)/ total_h2_consumed_kg
+    comp_component = (capex_comp + var_comp + capex_decomp + var_decomp) / total_h2_consumed_kg
+    store_component = capex_store / total_h2_consumed_kg
+    electricity_component = total_elec_cost / total_h2_consumed_kg
+    
+    # Convert to USD / kg (Assuming LHV of H2 is ~33.33 kWh/kg = 0.03333 MWh/kg)
+    lcoh_usd_kg = lcoh_usd_mwh * 0.03333
+
+    return {
+        "LCOH (USD/MWh)": lcoh_usd_mwh,
+        "LCOH (USD/kg)": lcoh_usd_kg,
+        "Electrolyser cost (USD/kg)": electrolyser_component,
+        "Compressor cost (USD/kg)": comp_component,
+        "Store cost (USD/kg)": store_component,
+        "Electricity cost (USD/kg)": electricity_component,
+        "Total H2 Consumed (MWh)": total_h2_consumed_mwh
+    }
