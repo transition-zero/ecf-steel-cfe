@@ -122,17 +122,23 @@ def plot_results(path_to_run_dir: str, run: dict, nodes_with_ci_loads):
     #                                 run=run,
     #                                 work_sans_font_medium=work_sans_font_medium)
 
-    plot_lcoh(solved_networks=solved_networks,
-              path_to_run_dir=path_to_run_dir,
-              work_sans_font=work_sans_font_medium)
+    # Only run plot_lcoh if there are any H2 buses in the solved_networks
+    has_h2 = any(
+        hasattr(n, "loads_t") and n.loads_t.p_set.columns.str.contains("H2").any()
+        for n in solved_networks.values()
+    )
+    if has_h2:
+        plot_lcoh(solved_networks=solved_networks,
+                  path_to_run_dir=path_to_run_dir,
+                  work_sans_font=work_sans_font_medium)
+        plot_ci_energy_balance_h2(solved_networks=solved_networks,
+                            path_to_run_dir=path_to_run_dir,
+                            work_sans_font=work_sans_font)
     
     plot_lcoe(solved_networks=solved_networks,
              path_to_run_dir=path_to_run_dir,
              work_sans_font=work_sans_font_medium)
-    
-    plot_ci_energy_balance_h2(solved_networks=solved_networks,
-                              path_to_run_dir=path_to_run_dir,
-                              work_sans_font=work_sans_font)
+
 
 def aggregate_capacity(
         scenarios,
@@ -1335,9 +1341,9 @@ def plot_ci_energy_balance_h2(solved_networks, path_to_run_dir, work_sans_font):
     res = (
         ci_procurement
         .loc[ci_procurement['Scenario'].str.contains('RES')]
-        .drop(['Scenario','CFE Score'], axis=1)
+        .set_index('Scenario')
+        .drop(['CFE Score'], axis=1)
         .mul(1e-6)
-        .rename(index={0:'100% RES'})
     )
 
     cfe = (

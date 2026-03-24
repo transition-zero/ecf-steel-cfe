@@ -364,8 +364,8 @@ def get_ci_procurement_h2(n, ci_identifier):
                 ]
             .sum(axis=1)
             .sum()
-            - n.links_t.p0.filter(regex=ci_identifier).filter(regex='Storage Charge').sum().sum()
-            + n.links_t.p0.filter(regex=ci_identifier).filter(regex='Storage Discharge').sum().sum()
+            - n.links_t.p0.filter(regex=ci_identifier).filter(regex='Storage Charge').filter(regex='^(?!.*H2)').sum().sum()
+            + n.links_t.p0.filter(regex=ci_identifier).filter(regex='Storage Discharge').filter(regex='^(?!.*H2)').sum().sum()
             #/ ci_load
         ),
         'C&I Load' : (
