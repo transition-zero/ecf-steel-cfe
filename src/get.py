@@ -341,7 +341,9 @@ def get_ci_carriers(n: pypsa.Network) -> pd.DataFrame:
         if not h2_stores.empty:
             ci_carriers += list(h2_stores.carrier.unique())
 
-    return (n.carriers.loc[ci_carriers, 'nice_name'])
+    # Filter out carriers that are not present in n.carriers.index to avoid KeyError
+    valid_ci_carriers = pd.Index(ci_carriers).intersection(n.carriers.index)
+    return n.carriers.loc[valid_ci_carriers, 'nice_name']
 
 
 def calculate_lcoh(
