@@ -189,7 +189,7 @@ def plot_ci_portfolio_capacity(solved_networks, path_to_run_dir, work_sans_font)
         .drop('name', axis=1)
         .query("capacity != 0")
     )
-
+    
     # pull out relevant data
     res = (
         expanded_capacity

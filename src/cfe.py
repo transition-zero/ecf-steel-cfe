@@ -223,7 +223,7 @@ def PrepareNetworkForCFE(
                 p_nom=0,
                 p_nom_extendable=True,
                 marginal_cost=0.01,  # representative cost
-                capital_cost= (calculate_annuity(25,0.1) * 757000) + 0.02*757000, 
+                capital_cost= (1*(calculate_annuity(25,0.1) * 757000)) + 0.02*757000, 
                 # data source: https://ens.dk/en/analyses-and-statistics/technology-data-renewable-fuels
             )
 
@@ -236,7 +236,7 @@ def PrepareNetworkForCFE(
                 efficiency = 0.89,
                 p_nom=0,
                 p_nom_extendable=True,
-                capital_cost=(calculate_annuity(30,0.1) * 0.029e6) + 620, 
+                capital_cost=(1*(calculate_annuity(30,0.1) * 0.029e6))+ 620, 
                 # WACC of 10%, 30 year lifetime, 40 k€/MW CAPEX
                 # source - https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
                 marginal_cost=0.01,  # representative costs
@@ -439,7 +439,7 @@ def PrepareNetworkForCFE(
                 e_nom = 0,
                 e_nom_extendable = True,
                 e_cyclic = True,
-                capital_cost = calculate_annuity(20,0.1) * 0.029e6,
+                capital_cost = 1 * calculate_annuity(20,0.1) * 0.029e6,
                 # source https://ens.dk/en/analyses-and-statistics/technology-data-energy-storage
                 standing_loss = 0.0,
             )
