@@ -253,21 +253,25 @@ def get_ci_generation(n : pypsa.Network) -> pd.DataFrame:
     })
     return ci_generation_df
 
-def get_total_ci_procurement_cost(n : pypsa.Network) -> pd.DataFrame:
-    '''Returns the total annual system cost in M$ for each C&I procured component and carrier
-    '''
-    return (
-        (
-            n.statistics(groupby=["bus","carrier"])['Capital Expenditure'].fillna(0) 
-            + n.statistics(groupby=["bus","carrier"])['Operational Expenditure'].fillna(0)
+def get_total_ci_procurement_cost(n: pypsa.Network) -> pd.DataFrame:
+    """
+    Returns the total annual system cost in M$ for each C&I procured component and carrier,
+    excluding Transmission rows.
+    """
+    stats = n.statistics(groupby=["bus", "carrier"])
+    capex = stats['Capital Expenditure'].fillna(0)
+    opex = stats['Operational Expenditure'].fillna(0)
+    total_cost = (capex + opex).div(1e6).round(2).reset_index()
+    filtered = (
+        total_cost
+        .query(
+            "level_1.str.contains('C&I') "
+            "and not level_2.str.contains('Transmission')"
         )
-        .div(1e6)
-        .round(2)
-        .reset_index()
-        .query("level_1.str.contains('C&I')")
         .drop(columns=['level_1'])
-        .rename(columns={'level_0' : 'component','level_2' : 'carrier', 0: 'annual_system_cost [M$]'})
+        .rename(columns={'level_0': 'component', 'level_2': 'carrier', 0: 'annual_system_cost [M$]'})
     )
+    return filtered if not filtered.empty else pd.DataFrame(columns=['component', 'carrier', 'annual_system_cost [M$]'])
 
 def get_lcoe(n : pypsa.Network) -> pd.DataFrame:
     '''Returns the levelised cost of electricity (LCOE) in $/MWh for each C&I procured generator and storage unit
